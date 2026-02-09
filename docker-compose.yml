@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: serval
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: serval_run
+
+  mongodb:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"

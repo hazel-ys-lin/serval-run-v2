@@ -1,0 +1,88 @@
+[package]
+name = "serval-run"
+version = "2.0.0"
+edition = "2021"
+authors = ["Hazel Lin <hazel.ys.lin@gmail.com>"]
+license = "MIT"
+
+[lib]
+name = "serval_run"
+path = "src/lib.rs"
+
+[[bin]]
+name = "server"
+path = "src/main.rs"
+
+[[bin]]
+name = "worker"
+path = "src/worker/main.rs"
+
+[dependencies]
+# Web framework
+axum = "0.8.8"
+tokio = { version = "1.49.0", features = ["full"] }
+tower = "0.5.3"
+tower-http = { version = "0.6.8", features = ["cors", "trace"] }
+utoipa = { version = "5", features = ["axum_extras", "uuid", "time"] }
+utoipa-swagger-ui = { version = "9", features = ["axum"] }
+
+# Database (SeaORM)
+sea-orm = { version = "1.1", features = [
+    "sqlx-postgres",
+    "runtime-tokio-rustls",
+    "macros",
+    "with-uuid",
+    "with-time",
+    "with-json",
+    "with-rust_decimal",
+] }
+# Keep sqlx for migrations
+sqlx = { version = "0.8", features = [
+    "runtime-tokio",
+    "postgres",
+    "migrate",
+] }
+mongodb = "3.5.0"
+bson = { version = "2", features = ["uuid-1"] }
+redis = { version = "1.0.2", features = ["tokio-comp", "connection-manager"] }
+
+# Serialization
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+
+# UUID
+uuid = { version = "1.16", features = ["v4", "serde"] }
+
+# Decimal (for pass_rate)
+rust_decimal = { version = "1.37", features = ["db-postgres", "serde"] }
+
+# Authentication
+jsonwebtoken = "9" # v10 has compilation issues
+argon2 = "0.5"
+
+# Error handling
+thiserror = "2.0.18"
+anyhow = "1.0.100"
+
+# Logging
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.22", features = ["env-filter", "json"] }
+
+# HTTP client (for worker)
+reqwest = { version = "0.13.1", features = ["json"] }
+
+# Time handling
+time = { version = "0.3.45", features = ["serde", "macros"] }
+
+# Environment variables
+dotenvy = "0.15.7"
+
+# Gherkin parser
+gherkin = "0.15"
+
+# Async utilities
+futures = "0.3.31"
+async-trait = "0.1"
+
+[dev-dependencies]
+axum-test = "18.7.0"
