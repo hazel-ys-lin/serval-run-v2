@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
-    QueryOrder, Set,
+    QueryOrder, QuerySelect, Set,
 };
 use uuid::Uuid;
 
@@ -39,8 +39,9 @@ impl Repository<Response> for ResponseRepository {
     async fn list(db: &DatabaseConnection, limit: u64, offset: u64) -> AppResult<Vec<Response>> {
         let models = ResponseEntity::find()
             .order_by_desc(Column::RequestTime)
-            .paginate(db, limit)
-            .fetch_page(offset / limit)
+            .offset(offset)
+            .limit(limit)
+            .all(db)
             .await?;
 
         Ok(models.into_iter().map(|m| m.into()).collect())
@@ -124,8 +125,9 @@ impl ResponseRepository {
         let models = ResponseEntity::find()
             .filter(Column::ReportId.eq(report_id))
             .order_by_asc(Column::RequestTime)
-            .paginate(db, limit)
-            .fetch_page(offset / limit)
+            .offset(offset)
+            .limit(limit)
+            .all(db)
             .await?;
 
         Ok(models.into_iter().map(|m| m.into()).collect())

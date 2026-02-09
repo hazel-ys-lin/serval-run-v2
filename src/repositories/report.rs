@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use rust_decimal::Decimal;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
-    QueryOrder, Set,
+    QueryOrder, QuerySelect, Set,
 };
 use uuid::Uuid;
 
@@ -39,8 +39,9 @@ impl Repository<Report> for ReportRepository {
     async fn list(db: &DatabaseConnection, limit: u64, offset: u64) -> AppResult<Vec<Report>> {
         let models = ReportEntity::find()
             .order_by_desc(Column::CreatedAt)
-            .paginate(db, limit)
-            .fetch_page(offset / limit)
+            .offset(offset)
+            .limit(limit)
+            .all(db)
             .await?;
 
         Ok(models.into_iter().map(|m| m.into()).collect())
@@ -113,8 +114,9 @@ impl ReportRepository {
         let models = ReportEntity::find()
             .filter(Column::ProjectId.eq(project_id))
             .order_by_desc(Column::CreatedAt)
-            .paginate(db, limit)
-            .fetch_page(offset / limit)
+            .offset(offset)
+            .limit(limit)
+            .all(db)
             .await?;
 
         Ok(models.into_iter().map(|m| m.into()).collect())

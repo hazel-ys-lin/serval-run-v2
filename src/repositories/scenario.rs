@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
-    QueryOrder, Set,
+    QueryOrder, QuerySelect, Set,
 };
 use uuid::Uuid;
 
@@ -40,8 +40,9 @@ impl Repository<Scenario> for ScenarioRepository {
     async fn list(db: &DatabaseConnection, limit: u64, offset: u64) -> AppResult<Vec<Scenario>> {
         let models = ScenarioEntity::find()
             .order_by_desc(Column::CreatedAt)
-            .paginate(db, limit)
-            .fetch_page(offset / limit)
+            .offset(offset)
+            .limit(limit)
+            .all(db)
             .await?;
 
         Ok(models.into_iter().map(|m| m.into()).collect())
@@ -116,8 +117,9 @@ impl ScenarioRepository {
         let models = ScenarioEntity::find()
             .filter(Column::ApiId.eq(api_id))
             .order_by_desc(Column::CreatedAt)
-            .paginate(db, limit)
-            .fetch_page(offset / limit)
+            .offset(offset)
+            .limit(limit)
+            .all(db)
             .await?;
 
         Ok(models.into_iter().map(|m| m.into()).collect())
