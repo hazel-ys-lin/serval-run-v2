@@ -17,6 +17,7 @@ use axum::{
     routing::{delete, get, post, put},
     Router,
 };
+use tower_http::cors::CorsLayer;
 
 use crate::handlers::{
     cancel_job, create_api, create_collection, create_environment, create_from_gherkin,
@@ -121,5 +122,6 @@ pub fn build_router(state: AppState) -> Router {
         .route("/api/auth/login", post(login))
         // Protected routes
         .merge(protected_routes)
+        .layer(CorsLayer::permissive())
         .with_state(state)
 }
