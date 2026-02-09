@@ -156,7 +156,7 @@ pub async fn run_scenario_test(
             message: "Test job queued successfully".to_string(),
         };
 
-        Ok(Json(serde_json::to_value(response).unwrap()))
+        Ok(Json(serde_json::to_value(response).map_err(|e| AppError::Internal(e.to_string()))?))
     } else {
         // Sync execution - run immediately
         let config = TestConfig {
@@ -169,7 +169,7 @@ pub async fn run_scenario_test(
         let results = runner.run_scenario(&scenario, &api, &environment).await?;
 
         let response = build_test_run_response(results);
-        Ok(Json(serde_json::to_value(response).unwrap()))
+        Ok(Json(serde_json::to_value(response).map_err(|e| AppError::Internal(e.to_string()))?))
     }
 }
 
@@ -240,7 +240,7 @@ pub async fn run_api_tests(
             message: "Test job queued successfully".to_string(),
         };
 
-        Ok(Json(serde_json::to_value(response).unwrap()))
+        Ok(Json(serde_json::to_value(response).map_err(|e| AppError::Internal(e.to_string()))?))
     } else {
         // Sync execution - run immediately
         let config = TestConfig {
@@ -258,7 +258,7 @@ pub async fn run_api_tests(
         }
 
         let response = build_test_run_response(all_results);
-        Ok(Json(serde_json::to_value(response).unwrap()))
+        Ok(Json(serde_json::to_value(response).map_err(|e| AppError::Internal(e.to_string()))?))
     }
 }
 
@@ -333,7 +333,7 @@ pub async fn run_collection_tests(
             message: "Test job queued successfully".to_string(),
         };
 
-        Ok(Json(serde_json::to_value(response).unwrap()))
+        Ok(Json(serde_json::to_value(response).map_err(|e| AppError::Internal(e.to_string()))?))
     } else {
         // Sync execution - run immediately
         let config = TestConfig {
@@ -362,7 +362,7 @@ pub async fn run_collection_tests(
         }
 
         let response = build_test_run_response(all_results);
-        Ok(Json(serde_json::to_value(response).unwrap()))
+        Ok(Json(serde_json::to_value(response).map_err(|e| AppError::Internal(e.to_string()))?))
     }
 }
 
