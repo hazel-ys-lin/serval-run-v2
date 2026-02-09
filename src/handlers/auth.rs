@@ -59,6 +59,11 @@ pub async fn register(
     if payload.email.is_empty() {
         return Err(AppError::Validation("Email is required".to_string()));
     }
+    if !payload.email.contains('@') || !payload.email.contains('.') {
+        return Err(AppError::Validation(
+            "Invalid email format".to_string(),
+        ));
+    }
     if payload.password.len() < 8 {
         return Err(AppError::Validation(
             "Password must be at least 8 characters".to_string(),
