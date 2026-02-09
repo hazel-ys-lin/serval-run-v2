@@ -5,7 +5,7 @@ services:
       - "5432:5432"
     environment:
       POSTGRES_USER: serval
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
       POSTGRES_DB: serval_run
 
   mongodb:
