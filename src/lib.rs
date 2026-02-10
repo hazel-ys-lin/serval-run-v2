@@ -13,10 +13,12 @@ pub mod services;
 pub mod state;
 
 use axum::{
+    extract::State,
     middleware,
     routing::{delete, get, post, put},
-    Router,
+    Json, Router,
 };
+use bson::doc;
 use tower_http::cors::CorsLayer;
 
 use crate::handlers::{
@@ -117,6 +119,7 @@ pub fn build_router(state: AppState) -> Router {
 
     Router::new()
         .route("/", get(|| async { "Hello, ServalRun v2!" }))
+        .route("/health", get(health_check))
         // Public auth routes
         .route("/api/auth/register", post(register))
         .route("/api/auth/login", post(login))
@@ -124,4 +127,34 @@ pub fn build_router(state: AppState) -> Router {
         .merge(protected_routes)
         .layer(CorsLayer::permissive())
         .with_state(state)
+}
+
+async fn health_check(State(state): State<AppState>) -> Json<serde_json::Value> {
+    let pg_status = match state.db.ping().await {
+        Ok(_) => "ok",
+        Err(_) => "error",
+    };
+
+    let mongo_status = match state.mongo_db().run_command(doc! { "ping": 1 }).await {
+        Ok(_) => "ok",
+        Err(_) => "error",
+    };
+
+    let redis_status = match redis::cmd("PING")
+        .query_async::<String>(&mut state.redis.clone())
+        .await
+    {
+        Ok(_) => "ok",
+        Err(_) => "error",
+    };
+
+    let all_ok = pg_status == "ok" && mongo_status == "ok" && redis_status == "ok";
+
+    Json(serde_json::json!({
+        "status": if all_ok { "ok" } else { "degraded" },
+        "version": env!("CARGO_PKG_VERSION"),
+        "postgres": pg_status,
+        "mongodb": mongo_status,
+        "redis": redis_status,
+    }))
 }

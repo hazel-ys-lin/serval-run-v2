@@ -1,8 +1,6 @@
-use axum::{routing::get, Json};
-use serde::{Deserialize, Serialize};
 use utoipa::{
     openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
-    Modify, OpenApi, ToSchema,
+    Modify, OpenApi,
 };
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -21,27 +19,6 @@ use serval_run::handlers::{
 use serval_run::models::UserResponse;
 use serval_run::state::AppState;
 use serval_run::{build_router, handlers};
-
-#[derive(Serialize, Deserialize, ToSchema)]
-pub struct HealthResponse {
-    pub status: String,
-    pub version: String,
-}
-
-#[utoipa::path(
-    get,
-    path = "/health",
-    responses(
-        (status = 200, description = "Health check", body = HealthResponse)
-    ),
-    tag = "Health"
-)]
-async fn health() -> Json<HealthResponse> {
-    Json(HealthResponse {
-        status: "ok".to_string(),
-        version: env!("CARGO_PKG_VERSION").to_string(),
-    })
-}
 
 /// Security scheme for Bearer token
 struct SecurityAddon;
@@ -65,7 +42,6 @@ impl Modify for SecurityAddon {
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        health,
         handlers::auth::register,
         handlers::auth::login,
         handlers::auth::me,
@@ -112,7 +88,6 @@ impl Modify for SecurityAddon {
         handlers::report::delete_report,
     ),
     components(schemas(
-        HealthResponse,
         RegisterRequest,
         LoginRequest,
         AuthResponse,
@@ -191,8 +166,6 @@ async fn main() {
 
     // Build the main application router
     let app = build_router(state)
-        // Add health check endpoint
-        .route("/health", get(health))
         // Add Swagger UI
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
 
