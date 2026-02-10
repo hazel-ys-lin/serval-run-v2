@@ -7,13 +7,51 @@ services:
       POSTGRES_USER: serval
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
       POSTGRES_DB: serval_run
+    volumes:
+      - pgdata:/var/lib/postgresql/data
 
   mongodb:
     image: mongo:7
     ports:
       - "27017:27017"
+    volumes:
+      - mongodata:/data/db
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+
+  server:
+    build: .
+    command: ["server"]
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://serval:${POSTGRES_PASSWORD:-changeme}@postgres:5432/serval_run
+      REDIS_URL: redis://redis:6379
+      MONGODB_URI: mongodb://mongodb:27017
+      MONGODB_DATABASE: serval_run
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+    depends_on:
+      - postgres
+      - mongodb
+      - redis
+
+  worker:
+    build: .
+    command: ["worker"]
+    environment:
+      DATABASE_URL: postgres://serval:${POSTGRES_PASSWORD:-changeme}@postgres:5432/serval_run
+      REDIS_URL: redis://redis:6379
+      MONGODB_URI: mongodb://mongodb:27017
+      MONGODB_DATABASE: serval_run
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+    depends_on:
+      - postgres
+      - mongodb
+      - redis
+
+volumes:
+  pgdata:
+  mongodata:
