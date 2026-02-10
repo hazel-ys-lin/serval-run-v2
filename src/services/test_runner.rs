@@ -114,9 +114,11 @@ impl TestRunner {
         let start = Instant::now();
 
         // Build context from steps
-        let mut context = StepContext::default();
-        context.expected_status = Some(example.expected_status_code);
-        context.expected_body = Some(example.expected_response_body.clone());
+        let mut context = StepContext {
+            expected_status: Some(example.expected_status_code),
+            expected_body: Some(example.expected_response_body.clone()),
+            ..Default::default()
+        };
 
         // Process steps to build context
         for step in steps {
@@ -391,13 +393,11 @@ impl TestRunner {
 
         // Validate expected body (deep comparison)
         if let Some(expected_body) = &context.expected_body {
-            if !expected_body.is_null() {
-                if !self.json_contains(body, expected_body) {
-                    return Err(format!(
-                        "Response body does not match expected. Expected: {}, Got: {}",
-                        expected_body, body
-                    ));
-                }
+            if !expected_body.is_null() && !self.json_contains(body, expected_body) {
+                return Err(format!(
+                    "Response body does not match expected. Expected: {}, Got: {}",
+                    expected_body, body
+                ));
             }
         }
 
@@ -461,7 +461,7 @@ impl TestRunner {
         let words: Vec<&str> = text.split_whitespace().collect();
         for (i, word) in words.iter().enumerate() {
             if let Ok(status) = word.parse::<i16>() {
-                if status >= 100 && status < 600 {
+                if (100..600).contains(&status) {
                     return Some(status);
                 }
             }
@@ -469,7 +469,7 @@ impl TestRunner {
             if *word == "status" || *word == "code" {
                 if let Some(next) = words.get(i + 1) {
                     if let Ok(status) = next.parse::<i16>() {
-                        if status >= 100 && status < 600 {
+                        if (100..600).contains(&status) {
                             return Some(status);
                         }
                     }

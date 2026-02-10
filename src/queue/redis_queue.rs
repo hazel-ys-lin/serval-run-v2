@@ -10,7 +10,6 @@ use crate::queue::{JobQueue, JobResult, JobStatus, TestJob};
 /// - serval:jobs:queue           - List for pending jobs (FIFO)
 /// - serval:jobs:{id}            - String for job data (JSON)
 /// - serval:jobs:by_user:{uid}   - Set of job IDs by user
-
 const QUEUE_KEY: &str = "serval:jobs:queue";
 const JOB_PREFIX: &str = "serval:jobs:";
 const USER_PREFIX: &str = "serval:jobs:by_user:";

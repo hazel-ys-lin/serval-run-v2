@@ -62,7 +62,7 @@ impl GherkinService {
         let scenarios = feature
             .scenarios
             .iter()
-            .map(|scenario| Self::parse_scenario(scenario))
+            .map(Self::parse_scenario)
             .collect::<AppResult<Vec<_>>>()?;
 
         Ok(ParsedFeature {
@@ -98,7 +98,7 @@ impl GherkinService {
                 let doc_string = step.docstring.clone();
 
                 // Parse data table if present
-                let data_table = step.table.as_ref().map(|table| Self::parse_data_table(table));
+                let data_table = step.table.as_ref().map(Self::parse_data_table);
 
                 ParsedStep {
                     keyword: step.keyword.trim().to_string(),
@@ -359,7 +359,7 @@ Feature: API with Data Tables
         assert_eq!(GherkinService::parse_cell_value("42"), serde_json::json!(42));
 
         // Float
-        assert_eq!(GherkinService::parse_cell_value("3.14"), serde_json::json!(3.14));
+        assert_eq!(GherkinService::parse_cell_value("3.25"), serde_json::json!(3.25));
 
         // Boolean
         assert_eq!(GherkinService::parse_cell_value("true"), serde_json::json!(true));

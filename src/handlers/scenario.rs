@@ -231,7 +231,7 @@ pub async fn list_scenarios(
     Path(api_id): Path<Uuid>,
     Query(params): Query<PaginationParams>,
 ) -> AppResult<Json<ScenarioListResponse>> {
-    let limit = params.limit.unwrap_or(20).min(100).max(1) as u64;
+    let limit = params.limit.unwrap_or(20).clamp(1, 100) as u64;
     let offset = params.offset.unwrap_or(0).max(0) as u64;
 
     let scenarios =

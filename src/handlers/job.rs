@@ -119,7 +119,7 @@ pub async fn list_jobs(
     State(state): State<AppState>,
     Query(params): Query<PaginationParams>,
 ) -> AppResult<Json<JobListResponse>> {
-    let limit = params.limit.unwrap_or(20).min(100).max(1) as u64;
+    let limit = params.limit.unwrap_or(20).clamp(1, 100) as u64;
 
     let jobs = state.job_queue.list_jobs_by_user(user.id, limit).await?;
 

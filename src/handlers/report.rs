@@ -158,7 +158,7 @@ pub async fn list_reports(
     Path(project_id): Path<Uuid>,
     Query(params): Query<PaginationParams>,
 ) -> AppResult<Json<ReportListResponse>> {
-    let limit = params.limit.unwrap_or(20).min(100).max(1) as u64;
+    let limit = params.limit.unwrap_or(20).clamp(1, 100) as u64;
     let offset = params.offset.unwrap_or(0) as u64;
 
     let reports = ReportRepository::list_by_project(&state.db, project_id, user.id, limit, offset).await?;

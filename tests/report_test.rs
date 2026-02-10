@@ -30,7 +30,7 @@ async fn test_create_report() {
     assert_eq!(body["project_id"].as_str().unwrap(), project.id.to_string());
     assert_eq!(body["environment_id"].as_str().unwrap(), env.id.to_string());
     assert_eq!(body["report_level"].as_i64().unwrap(), 2);
-    assert_eq!(body["finished"].as_bool().unwrap(), false);
+    assert!(!body["finished"].as_bool().unwrap());
 }
 
 #[tokio::test]
