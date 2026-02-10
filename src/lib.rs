@@ -19,6 +19,8 @@ use axum::{
     Json, Router,
 };
 use bson::doc;
+use std::sync::Arc;
+use tower_governor::{governor::GovernorConfigBuilder, GovernorLayer};
 use tower_http::cors::CorsLayer;
 
 use crate::handlers::{
@@ -36,6 +38,20 @@ use crate::state::AppState;
 
 /// Build the application router with the given state
 pub fn build_router(state: AppState) -> Router {
+    // Rate limiting: stricter for auth routes (5 requests per second)
+    let auth_governor_conf = GovernorConfigBuilder::default()
+        .per_second(1)
+        .burst_size(5)
+        .finish()
+        .unwrap();
+
+    // Rate limiting: general (25 requests per second)
+    let general_governor_conf = GovernorConfigBuilder::default()
+        .per_second(1)
+        .burst_size(25)
+        .finish()
+        .unwrap();
+
     // Protected routes (require authentication)
     let protected_routes = Router::new()
         // Auth & User routes
@@ -117,14 +133,20 @@ pub fn build_router(state: AppState) -> Router {
             auth_middleware,
         ));
 
+    // Auth routes with stricter rate limiting
+    let auth_routes = Router::new()
+        .route("/api/auth/register", post(register))
+        .route("/api/auth/login", post(login))
+        .layer(GovernorLayer::new(Arc::new(auth_governor_conf)));
+
     Router::new()
         .route("/", get(|| async { "Hello, ServalRun v2!" }))
         .route("/health", get(health_check))
-        // Public auth routes
-        .route("/api/auth/register", post(register))
-        .route("/api/auth/login", post(login))
+        // Auth routes (stricter rate limit)
+        .merge(auth_routes)
         // Protected routes
         .merge(protected_routes)
+        .layer(GovernorLayer::new(Arc::new(general_governor_conf)))
         .layer(CorsLayer::permissive())
         .with_state(state)
 }

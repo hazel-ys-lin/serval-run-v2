@@ -173,5 +173,10 @@ async fn main() {
 
     tracing::info!("Server started on http://{}", addr);
     tracing::info!("Swagger UI: http://{}/swagger-ui/", addr);
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+    )
+    .await
+    .unwrap();
 }
