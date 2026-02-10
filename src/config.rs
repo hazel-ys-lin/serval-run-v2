@@ -5,6 +5,7 @@ pub struct Config {
     // Database
     pub database_url: String,
     pub mongodb_url: String,
+    pub mongodb_database: String,
     pub redis_url: String,
 
     // JWT
@@ -27,6 +28,8 @@ impl Config {
                 .map_err(|_| ConfigError::Missing("DATABASE_URL"))?,
             mongodb_url: env::var("MONGODB_URL")
                 .map_err(|_| ConfigError::Missing("MONGODB_URL"))?,
+            mongodb_database: env::var("MONGODB_DATABASE")
+                .unwrap_or_else(|_| "serval_run".to_string()),
             redis_url: env::var("REDIS_URL").map_err(|_| ConfigError::Missing("REDIS_URL"))?,
 
             // JWT

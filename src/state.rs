@@ -120,9 +120,9 @@ impl AppState {
         })
     }
 
-    /// Get MongoDB database (default: serval_run)
+    /// Get MongoDB database (configurable via MONGODB_DATABASE env var)
     pub fn mongo_db(&self) -> mongodb::Database {
-        self.mongo_client.database("serval_run")
+        self.mongo_client.database(&self.config.mongodb_database)
     }
 }
 

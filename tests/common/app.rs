@@ -16,6 +16,8 @@ pub fn test_config() -> Config {
         }),
         mongodb_url: std::env::var("MONGODB_URL")
             .unwrap_or_else(|_| "mongodb://localhost:27017".to_string()),
+        mongodb_database: std::env::var("MONGODB_DATABASE")
+            .unwrap_or_else(|_| "serval_test".to_string()),
         redis_url: std::env::var("REDIS_URL")
             .unwrap_or_else(|_| "redis://localhost:6379".to_string()),
         jwt_secret: "test-jwt-secret-that-is-at-least-32-characters-long".to_string(),
