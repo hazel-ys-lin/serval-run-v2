@@ -4,6 +4,7 @@ use uuid::Uuid;
 use serval_run::error::AppResult;
 use serval_run::models::CreateReport;
 use serval_run::queue::TestJobType;
+use serval_run::repositories::mongo::{ExecutionLog, MongoRepository};
 use serval_run::repositories::ReportRepository;
 use serval_run::services::TestResult;
 use serval_run::state::AppState;
@@ -102,6 +103,27 @@ impl ResultHandler {
             response_model.insert(&state.db).await.map_err(|e| {
                 serval_run::error::AppError::Database(format!("Failed to save response: {}", e))
             })?;
+        }
+
+        // Save execution logs to MongoDB (non-fatal)
+        let logs: Vec<ExecutionLog> = results
+            .iter()
+            .map(|r| ExecutionLog {
+                report_id: report_id.to_string(),
+                api_id: r.api_id.to_string(),
+                scenario_id: r.scenario_id.to_string(),
+                example_index: r.example_index,
+                response_status: r.response_status,
+                response_data: r.response_data.clone(),
+                pass: r.pass,
+                error_message: r.error_message.clone(),
+                duration_ms: r.request_duration_ms,
+                created_at: bson::DateTime::now(),
+            })
+            .collect();
+
+        if let Err(e) = MongoRepository::save_execution_logs(&state.mongo_db(), report_id, logs).await {
+            tracing::warn!(error = %e, "Failed to save execution logs to MongoDB (non-fatal)");
         }
 
         Ok(())

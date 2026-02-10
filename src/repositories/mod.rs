@@ -1,6 +1,7 @@
 pub mod api;
 pub mod collection;
 pub mod environment;
+pub mod mongo;
 pub mod project;
 pub mod report;
 pub mod response;
