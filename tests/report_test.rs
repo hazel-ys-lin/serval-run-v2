@@ -57,7 +57,10 @@ async fn test_create_report_with_collection() {
     response.assert_status(StatusCode::OK);
 
     let body: serde_json::Value = response.json();
-    assert_eq!(body["collection_id"].as_str().unwrap(), collection.id.to_string());
+    assert_eq!(
+        body["collection_id"].as_str().unwrap(),
+        collection.id.to_string()
+    );
     assert_eq!(body["report_level"].as_i64().unwrap(), 1);
     assert_eq!(body["report_type"].as_str().unwrap(), "collection_test");
 }
@@ -137,9 +140,15 @@ async fn test_list_reports() {
     let env = factory.create_environment(project.id, auth.user_id).await;
 
     // Create reports
-    factory.create_report(project.id, env.id, auth.user_id).await;
-    factory.create_report(project.id, env.id, auth.user_id).await;
-    factory.create_report(project.id, env.id, auth.user_id).await;
+    factory
+        .create_report(project.id, env.id, auth.user_id)
+        .await;
+    factory
+        .create_report(project.id, env.id, auth.user_id)
+        .await;
+    factory
+        .create_report(project.id, env.id, auth.user_id)
+        .await;
 
     let response = app
         .server
@@ -179,7 +188,9 @@ async fn test_get_report() {
     let auth = factory.create_user().await;
     let project = factory.create_project(auth.user_id).await;
     let env = factory.create_environment(project.id, auth.user_id).await;
-    let report = factory.create_report(project.id, env.id, auth.user_id).await;
+    let report = factory
+        .create_report(project.id, env.id, auth.user_id)
+        .await;
 
     let response = app
         .server
@@ -218,7 +229,9 @@ async fn test_get_report_other_user() {
     let auth1 = factory.create_user().await;
     let project = factory.create_project(auth1.user_id).await;
     let env = factory.create_environment(project.id, auth1.user_id).await;
-    let report = factory.create_report(project.id, env.id, auth1.user_id).await;
+    let report = factory
+        .create_report(project.id, env.id, auth1.user_id)
+        .await;
 
     let auth2 = factory.create_user().await;
     let response = app
@@ -237,7 +250,9 @@ async fn test_get_report_detail() {
     let auth = factory.create_user().await;
     let project = factory.create_project(auth.user_id).await;
     let env = factory.create_environment(project.id, auth.user_id).await;
-    let report = factory.create_report(project.id, env.id, auth.user_id).await;
+    let report = factory
+        .create_report(project.id, env.id, auth.user_id)
+        .await;
 
     let response = app
         .server
@@ -260,7 +275,9 @@ async fn test_get_report_detail_other_user() {
     let auth1 = factory.create_user().await;
     let project = factory.create_project(auth1.user_id).await;
     let env = factory.create_environment(project.id, auth1.user_id).await;
-    let report = factory.create_report(project.id, env.id, auth1.user_id).await;
+    let report = factory
+        .create_report(project.id, env.id, auth1.user_id)
+        .await;
 
     let auth2 = factory.create_user().await;
     let response = app
@@ -279,7 +296,9 @@ async fn test_delete_report() {
     let auth = factory.create_user().await;
     let project = factory.create_project(auth.user_id).await;
     let env = factory.create_environment(project.id, auth.user_id).await;
-    let report = factory.create_report(project.id, env.id, auth.user_id).await;
+    let report = factory
+        .create_report(project.id, env.id, auth.user_id)
+        .await;
 
     let response = app
         .server
@@ -307,7 +326,9 @@ async fn test_delete_report_other_user() {
     let auth1 = factory.create_user().await;
     let project = factory.create_project(auth1.user_id).await;
     let env = factory.create_environment(project.id, auth1.user_id).await;
-    let report = factory.create_report(project.id, env.id, auth1.user_id).await;
+    let report = factory
+        .create_report(project.id, env.id, auth1.user_id)
+        .await;
 
     let auth2 = factory.create_user().await;
     let response = app

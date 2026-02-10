@@ -60,9 +60,7 @@ pub async fn register(
         return Err(AppError::Validation("Email is required".to_string()));
     }
     if !payload.email.contains('@') || !payload.email.contains('.') {
-        return Err(AppError::Validation(
-            "Invalid email format".to_string(),
-        ));
+        return Err(AppError::Validation("Invalid email format".to_string()));
     }
     if payload.password.len() < 8 {
         return Err(AppError::Validation(
@@ -143,10 +141,7 @@ pub async fn login(
     ),
     tag = "Auth"
 )]
-pub async fn me(
-    user: AuthUser,
-    State(state): State<AppState>,
-) -> AppResult<Json<UserResponse>> {
+pub async fn me(user: AuthUser, State(state): State<AppState>) -> AppResult<Json<UserResponse>> {
     let user_data = UserRepository::find_by_id(&state.db, user.id).await?;
     Ok(Json(user_data.into()))
 }

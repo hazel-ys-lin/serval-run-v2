@@ -8,7 +8,7 @@ pub struct Api {
     pub id: Uuid,
     pub collection_id: Uuid,
     pub name: String,
-    pub http_method: String,  // GET, POST, PUT, DELETE, PATCH, etc.
+    pub http_method: String, // GET, POST, PUT, DELETE, PATCH, etc.
     pub endpoint: String,
     pub severity: i16,
     pub description: Option<String>,

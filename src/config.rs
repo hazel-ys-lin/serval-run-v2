@@ -27,12 +27,10 @@ impl Config {
                 .map_err(|_| ConfigError::Missing("DATABASE_URL"))?,
             mongodb_url: env::var("MONGODB_URL")
                 .map_err(|_| ConfigError::Missing("MONGODB_URL"))?,
-            redis_url: env::var("REDIS_URL")
-                .map_err(|_| ConfigError::Missing("REDIS_URL"))?,
+            redis_url: env::var("REDIS_URL").map_err(|_| ConfigError::Missing("REDIS_URL"))?,
 
             // JWT
-            jwt_secret: env::var("JWT_SECRET")
-                .map_err(|_| ConfigError::Missing("JWT_SECRET"))?,
+            jwt_secret: env::var("JWT_SECRET").map_err(|_| ConfigError::Missing("JWT_SECRET"))?,
             jwt_expiration_hours: env::var("JWT_EXPIRATION_HOURS")
                 .unwrap_or_else(|_| "24".to_string())
                 .parse()

@@ -13,10 +13,10 @@ use crate::error::{AppError, AppResult};
 /// JWT Claims structure
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: Uuid,        // user id
+    pub sub: Uuid, // user id
     pub email: String,
-    pub exp: i64,         // expiration timestamp
-    pub iat: i64,         // issued at timestamp
+    pub exp: i64, // expiration timestamp
+    pub iat: i64, // issued at timestamp
 }
 
 pub struct AuthService;

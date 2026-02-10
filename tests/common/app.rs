@@ -1,18 +1,19 @@
 use std::sync::Arc;
 
 use axum_test::TestServer;
+use serval_run::build_router;
 use serval_run::config::Config;
 use serval_run::queue::InMemoryQueue;
 use serval_run::state::AppState;
-use serval_run::build_router;
 
 /// Test configuration
 pub fn test_config() -> Config {
     dotenvy::dotenv().ok();
 
     Config {
-        database_url: std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/serval_test".to_string()),
+        database_url: std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/serval_test".to_string()
+        }),
         mongodb_url: std::env::var("MONGODB_URL")
             .unwrap_or_else(|_| "mongodb://localhost:27017".to_string()),
         redis_url: std::env::var("REDIS_URL")

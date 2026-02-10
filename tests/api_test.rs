@@ -31,7 +31,10 @@ async fn test_create_api() {
     assert_eq!(body["name"].as_str().unwrap(), "Get Users");
     assert_eq!(body["http_method"].as_str().unwrap(), "GET");
     assert_eq!(body["endpoint"].as_str().unwrap(), "/users");
-    assert_eq!(body["collection_id"].as_str().unwrap(), collection.id.to_string());
+    assert_eq!(
+        body["collection_id"].as_str().unwrap(),
+        collection.id.to_string()
+    );
 }
 
 #[tokio::test]

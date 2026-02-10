@@ -3,8 +3,8 @@ mod result_handler;
 
 use std::sync::Arc;
 
-use tokio::sync::watch;
 use tokio::signal;
+use tokio::sync::watch;
 
 // Import from the main crate
 use serval_run::config::Config;

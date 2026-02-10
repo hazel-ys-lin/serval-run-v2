@@ -7,8 +7,8 @@ use uuid::Uuid;
 pub struct Environment {
     pub id: Uuid,
     pub project_id: Uuid,
-    pub title: String,        // e.g., "dev", "staging", "production"
-    pub domain_name: String,  // base URL for this environment
+    pub title: String,       // e.g., "dev", "staging", "production"
+    pub domain_name: String, // base URL for this environment
     pub created_at: OffsetDateTime,
     pub updated_at: OffsetDateTime,
 }

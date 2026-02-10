@@ -43,7 +43,8 @@ impl ResultHandler {
             report_type: Some(job_type.as_str().to_string()),
         };
 
-        let report = ReportRepository::create(&state.db, project_id, user_id, &create_report).await?;
+        let report =
+            ReportRepository::create(&state.db, project_id, user_id, &create_report).await?;
 
         // Save individual test results to PostgreSQL
         Self::save_responses(state, report.id, results).await?;
@@ -122,7 +123,9 @@ impl ResultHandler {
             })
             .collect();
 
-        if let Err(e) = MongoRepository::save_execution_logs(&state.mongo_db(), report_id, logs).await {
+        if let Err(e) =
+            MongoRepository::save_execution_logs(&state.mongo_db(), report_id, logs).await
+        {
             tracing::warn!(error = %e, "Failed to save execution logs to MongoDB (non-fatal)");
         }
 

@@ -202,8 +202,7 @@ pub async fn create_scenario(
             .collect(),
     };
 
-    let scenario =
-        ScenarioRepository::create(&state.db, api_id, user.id, &create_scenario).await?;
+    let scenario = ScenarioRepository::create(&state.db, api_id, user.id, &create_scenario).await?;
     Ok(Json(scenario.into()))
 }
 
@@ -324,8 +323,7 @@ pub async fn update_scenario(
         }),
     };
 
-    let scenario =
-        ScenarioRepository::update(&state.db, id, user.id, &update_scenario).await?;
+    let scenario = ScenarioRepository::update(&state.db, id, user.id, &update_scenario).await?;
     Ok(Json(scenario.into()))
 }
 
@@ -457,8 +455,7 @@ pub async fn create_from_gherkin(
     let parsed = GherkinService::parse(&payload.gherkin_code)?;
 
     // Save raw Gherkin document to MongoDB
-    let parsed_json = serde_json::to_value(&parsed)
-        .unwrap_or_default();
+    let parsed_json = serde_json::to_value(&parsed).unwrap_or_default();
     if let Err(e) = MongoRepository::save_gherkin_document(
         &state.mongo_db(),
         api_id,

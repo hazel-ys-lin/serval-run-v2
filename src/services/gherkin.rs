@@ -289,8 +289,14 @@ Feature: API with Background
 
         let feature = result.unwrap();
         assert_eq!(feature.background_steps.len(), 2);
-        assert_eq!(feature.background_steps[0].text, "the API server is running");
-        assert_eq!(feature.background_steps[1].text, "I have a valid auth token");
+        assert_eq!(
+            feature.background_steps[0].text,
+            "the API server is running"
+        );
+        assert_eq!(
+            feature.background_steps[1].text,
+            "I have a valid auth token"
+        );
         assert_eq!(feature.scenarios.len(), 1);
     }
 
@@ -318,7 +324,10 @@ Feature: API with Doc Strings
 
         let doc_str = step.doc_string.as_ref().unwrap();
         let json: serde_json::Value = serde_json::from_str(doc_str).unwrap();
-        assert_eq!(json.get("email").and_then(|v| v.as_str()), Some("test@example.com"));
+        assert_eq!(
+            json.get("email").and_then(|v| v.as_str()),
+            Some("test@example.com")
+        );
     }
 
     #[test]
@@ -345,28 +354,49 @@ Feature: API with Data Tables
         assert_eq!(table.len(), 2);
 
         // Check first row
-        assert_eq!(table[0].get("email").and_then(|v| v.as_str()), Some("admin@test.com"));
+        assert_eq!(
+            table[0].get("email").and_then(|v| v.as_str()),
+            Some("admin@test.com")
+        );
         assert_eq!(table[0].get("role").and_then(|v| v.as_str()), Some("admin"));
         assert_eq!(table[0].get("active").and_then(|v| v.as_bool()), Some(true));
 
         // Check second row
-        assert_eq!(table[1].get("active").and_then(|v| v.as_bool()), Some(false));
+        assert_eq!(
+            table[1].get("active").and_then(|v| v.as_bool()),
+            Some(false)
+        );
     }
 
     #[test]
     fn test_parse_cell_value_types() {
         // Integer
-        assert_eq!(GherkinService::parse_cell_value("42"), serde_json::json!(42));
+        assert_eq!(
+            GherkinService::parse_cell_value("42"),
+            serde_json::json!(42)
+        );
 
         // Float
-        assert_eq!(GherkinService::parse_cell_value("3.25"), serde_json::json!(3.25));
+        assert_eq!(
+            GherkinService::parse_cell_value("3.25"),
+            serde_json::json!(3.25)
+        );
 
         // Boolean
-        assert_eq!(GherkinService::parse_cell_value("true"), serde_json::json!(true));
-        assert_eq!(GherkinService::parse_cell_value("FALSE"), serde_json::json!(false));
+        assert_eq!(
+            GherkinService::parse_cell_value("true"),
+            serde_json::json!(true)
+        );
+        assert_eq!(
+            GherkinService::parse_cell_value("FALSE"),
+            serde_json::json!(false)
+        );
 
         // Null
-        assert_eq!(GherkinService::parse_cell_value("null"), serde_json::json!(null));
+        assert_eq!(
+            GherkinService::parse_cell_value("null"),
+            serde_json::json!(null)
+        );
 
         // JSON array
         assert_eq!(

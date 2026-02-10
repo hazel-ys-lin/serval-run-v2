@@ -51,7 +51,10 @@ async fn test_register_with_job_title() {
     response.assert_status(StatusCode::OK);
 
     let body: serde_json::Value = response.json();
-    assert_eq!(body["user"]["job_title"].as_str().unwrap(), "Software Engineer");
+    assert_eq!(
+        body["user"]["job_title"].as_str().unwrap(),
+        "Software Engineer"
+    );
 }
 
 #[tokio::test]

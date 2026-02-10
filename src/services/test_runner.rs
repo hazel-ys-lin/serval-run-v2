@@ -196,12 +196,16 @@ impl TestRunner {
         }
 
         // Parse common patterns from text
-        if text.contains("request body") || text.contains("request payload") || text.contains("with body") {
+        if text.contains("request body")
+            || text.contains("request payload")
+            || text.contains("with body")
+        {
             // Only set body from text if doc_string didn't already set it
             if context.request_body.is_none() {
                 // Try to extract JSON from the step text
                 if let Some(json_start) = text.find('{') {
-                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text[json_start..]) {
+                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text[json_start..])
+                    {
                         context.request_body = Some(json);
                     }
                 } else {
@@ -292,7 +296,11 @@ impl TestRunner {
     ) -> Result<(i16, serde_json::Value), AppError> {
         // Build URL
         let endpoint = self.substitute_placeholders(&api.endpoint, example_data);
-        let mut url = format!("{}{}", environment.domain_name.trim_end_matches('/'), endpoint);
+        let mut url = format!(
+            "{}{}",
+            environment.domain_name.trim_end_matches('/'),
+            endpoint
+        );
 
         // Add query params
         if !context.query_params.is_empty() {
@@ -355,10 +363,7 @@ impl TestRunner {
         let status = response.status().as_u16() as i16;
 
         // Parse response body
-        let body: serde_json::Value = response
-            .json()
-            .await
-            .unwrap_or(serde_json::Value::Null);
+        let body: serde_json::Value = response.json().await.unwrap_or(serde_json::Value::Null);
 
         Ok((status, body))
     }
@@ -519,7 +524,8 @@ mod tests {
             "password": "secret123"
         });
 
-        let result = runner.substitute_placeholders("user <email> with password <password>", &example);
+        let result =
+            runner.substitute_placeholders("user <email> with password <password>", &example);
         assert_eq!(result, "user test@example.com with password secret123");
     }
 
@@ -527,8 +533,14 @@ mod tests {
     fn test_extract_status_code() {
         let runner = TestRunner::new();
 
-        assert_eq!(runner.extract_status_code("status should be 200"), Some(200));
-        assert_eq!(runner.extract_status_code("the status code is 404"), Some(404));
+        assert_eq!(
+            runner.extract_status_code("status should be 200"),
+            Some(200)
+        );
+        assert_eq!(
+            runner.extract_status_code("the status code is 404"),
+            Some(404)
+        );
         assert_eq!(runner.extract_status_code("expect 500 error"), Some(500));
     }
 

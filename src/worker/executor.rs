@@ -5,7 +5,9 @@ use uuid::Uuid;
 use serval_run::error::AppResult;
 use serval_run::models::{Api, Environment};
 use serval_run::queue::{JobResult, TestJob, TestJobType};
-use serval_run::repositories::{ApiRepository, EnvironmentRepository, Repository, ScenarioRepository};
+use serval_run::repositories::{
+    ApiRepository, EnvironmentRepository, Repository, ScenarioRepository,
+};
 use serval_run::services::{TestConfig, TestResult, TestRunner};
 use serval_run::state::AppState;
 
@@ -36,9 +38,11 @@ impl JobExecutor {
         let test_runner = TestRunner::with_config(test_config);
 
         // Load environment using Repository trait method
-        let environment =
-            <EnvironmentRepository as Repository<Environment>>::find_by_id(&self.state.db, job.environment_id)
-                .await?;
+        let environment = <EnvironmentRepository as Repository<Environment>>::find_by_id(
+            &self.state.db,
+            job.environment_id,
+        )
+        .await?;
 
         // Get project_id from environment
         let project_id = environment.project_id;
@@ -102,11 +106,11 @@ impl JobExecutor {
         environment: &Environment,
     ) -> AppResult<Vec<TestResult>> {
         // Use find_by_id_and_user for ownership verification
-        let scenario = ScenarioRepository::find_by_id_and_user(&self.state.db, scenario_id, user_id)
-            .await?;
+        let scenario =
+            ScenarioRepository::find_by_id_and_user(&self.state.db, scenario_id, user_id).await?;
 
-        let api = <ApiRepository as Repository<Api>>::find_by_id(&self.state.db, scenario.api_id)
-            .await?;
+        let api =
+            <ApiRepository as Repository<Api>>::find_by_id(&self.state.db, scenario.api_id).await?;
 
         runner.run_scenario(&scenario, &api, environment).await
     }
@@ -119,12 +123,11 @@ impl JobExecutor {
         user_id: Uuid,
         environment: &Environment,
     ) -> AppResult<Vec<TestResult>> {
-        let api = ApiRepository::find_by_id_and_user(&self.state.db, api_id, user_id)
-            .await?;
+        let api = ApiRepository::find_by_id_and_user(&self.state.db, api_id, user_id).await?;
 
         // Use list_by_api with high limit to get all scenarios
-        let scenarios = ScenarioRepository::list_by_api(&self.state.db, api_id, user_id, 1000, 0)
-            .await?;
+        let scenarios =
+            ScenarioRepository::list_by_api(&self.state.db, api_id, user_id, 1000, 0).await?;
 
         let mut all_results = Vec::new();
         for scenario in scenarios {
@@ -144,13 +147,14 @@ impl JobExecutor {
         environment: &Environment,
     ) -> AppResult<Vec<TestResult>> {
         // Use list_by_collection with high limit to get all APIs
-        let apis = ApiRepository::list_by_collection(&self.state.db, collection_id, user_id, 1000, 0)
-            .await?;
+        let apis =
+            ApiRepository::list_by_collection(&self.state.db, collection_id, user_id, 1000, 0)
+                .await?;
 
         let mut all_results = Vec::new();
         for api in &apis {
-            let scenarios = ScenarioRepository::list_by_api(&self.state.db, api.id, user_id, 1000, 0)
-                .await?;
+            let scenarios =
+                ScenarioRepository::list_by_api(&self.state.db, api.id, user_id, 1000, 0).await?;
             for scenario in scenarios {
                 let results = runner.run_scenario(&scenario, api, environment).await?;
                 all_results.extend(results);

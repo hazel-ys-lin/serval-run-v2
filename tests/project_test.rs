@@ -48,7 +48,10 @@ async fn test_create_project_with_description() {
     response.assert_status(StatusCode::OK);
 
     let body: serde_json::Value = response.json();
-    assert_eq!(body["description"].as_str().unwrap(), "This is a test project");
+    assert_eq!(
+        body["description"].as_str().unwrap(),
+        "This is a test project"
+    );
 }
 
 #[tokio::test]
@@ -249,7 +252,9 @@ async fn test_update_project_partial() {
     let app = TestApp::new().await;
     let factory = Factory::new(&app.state);
     let auth = factory.create_user().await;
-    let project = factory.create_project_with_name(auth.user_id, "Original Name").await;
+    let project = factory
+        .create_project_with_name(auth.user_id, "Original Name")
+        .await;
 
     // Update only description
     let response = app
@@ -265,7 +270,10 @@ async fn test_update_project_partial() {
 
     let body: serde_json::Value = response.json();
     assert_eq!(body["name"].as_str().unwrap(), "Original Name");
-    assert_eq!(body["description"].as_str().unwrap(), "New description only");
+    assert_eq!(
+        body["description"].as_str().unwrap(),
+        "New description only"
+    );
 }
 
 #[tokio::test]

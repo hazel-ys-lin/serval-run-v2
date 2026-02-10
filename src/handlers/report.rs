@@ -161,7 +161,8 @@ pub async fn list_reports(
     let limit = params.limit.unwrap_or(20).clamp(1, 100) as u64;
     let offset = params.offset.unwrap_or(0) as u64;
 
-    let reports = ReportRepository::list_by_project(&state.db, project_id, user.id, limit, offset).await?;
+    let reports =
+        ReportRepository::list_by_project(&state.db, project_id, user.id, limit, offset).await?;
     let total = ReportRepository::count_by_project(&state.db, project_id, user.id).await?;
 
     let data = reports.into_iter().map(|r| r.into()).collect();

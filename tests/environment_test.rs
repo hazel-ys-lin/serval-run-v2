@@ -27,7 +27,10 @@ async fn test_create_environment() {
 
     let body: serde_json::Value = response.json();
     assert_eq!(body["title"].as_str().unwrap(), "staging");
-    assert_eq!(body["domain_name"].as_str().unwrap(), "https://api.staging.example.com");
+    assert_eq!(
+        body["domain_name"].as_str().unwrap(),
+        "https://api.staging.example.com"
+    );
     assert_eq!(body["project_id"].as_str().unwrap(), project.id.to_string());
 }
 
@@ -194,7 +197,10 @@ async fn test_update_environment() {
 
     let body: serde_json::Value = response.json();
     assert_eq!(body["title"].as_str().unwrap(), "production");
-    assert_eq!(body["domain_name"].as_str().unwrap(), "https://api.prod.example.com");
+    assert_eq!(
+        body["domain_name"].as_str().unwrap(),
+        "https://api.prod.example.com"
+    );
 }
 
 #[tokio::test]

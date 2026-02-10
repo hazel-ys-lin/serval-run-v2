@@ -49,7 +49,10 @@ async fn test_create_collection_with_description() {
     response.assert_status(StatusCode::OK);
 
     let body: serde_json::Value = response.json();
-    assert_eq!(body["description"].as_str().unwrap(), "Contains all API tests");
+    assert_eq!(
+        body["description"].as_str().unwrap(),
+        "Contains all API tests"
+    );
 }
 
 #[tokio::test]

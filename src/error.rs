@@ -57,9 +57,7 @@ impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (status, error_message, details) = match &self {
             // 401 Unauthorized
-            AppError::InvalidCredentials => {
-                (StatusCode::UNAUTHORIZED, "Invalid credentials", None)
-            }
+            AppError::InvalidCredentials => (StatusCode::UNAUTHORIZED, "Invalid credentials", None),
             AppError::InvalidToken => (StatusCode::UNAUTHORIZED, "Invalid token", None),
             AppError::TokenExpired => (StatusCode::UNAUTHORIZED, "Token expired", None),
             AppError::Unauthorized => (StatusCode::UNAUTHORIZED, "Unauthorized", None),
@@ -73,9 +71,11 @@ impl IntoResponse for AppError {
             AppError::Conflict(msg) => (StatusCode::CONFLICT, "Conflict", Some(msg.clone())),
 
             // 400 Bad Request
-            AppError::Validation(msg) => {
-                (StatusCode::BAD_REQUEST, "Validation error", Some(msg.clone()))
-            }
+            AppError::Validation(msg) => (
+                StatusCode::BAD_REQUEST,
+                "Validation error",
+                Some(msg.clone()),
+            ),
 
             // 500 Internal Server Error
             AppError::Database(msg) => {
@@ -84,7 +84,11 @@ impl IntoResponse for AppError {
             }
             AppError::Internal(msg) => {
                 tracing::error!("Internal error: {}", msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error", None)
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Internal server error",
+                    None,
+                )
             }
             AppError::Queue(msg) => {
                 tracing::error!("Queue error: {}", msg);

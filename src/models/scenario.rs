@@ -10,7 +10,7 @@ pub struct Scenario {
     pub title: String,
     pub description: Option<String>,
     pub tags: Vec<String>,
-    pub steps: serde_json::Value,    // JSONB: [{keyword, keywordType, text}]
+    pub steps: serde_json::Value, // JSONB: [{keyword, keywordType, text}]
     pub examples: serde_json::Value, // JSONB: [{example, expected_response_body, expected_status_code}]
     pub created_at: OffsetDateTime,
     pub updated_at: OffsetDateTime,
@@ -19,7 +19,7 @@ pub struct Scenario {
 /// Gherkin step structure with optional doc string and data table
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GherkinStep {
-    pub keyword: String,       // Given, When, Then, And, But
+    pub keyword: String, // Given, When, Then, And, But
     pub keyword_type: String,
     pub text: String,
     /// Multi-line doc string (for JSON bodies, etc.)
@@ -33,7 +33,7 @@ pub struct GherkinStep {
 /// Test example with expected results
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TestExample {
-    pub example: serde_json::Value,            // dynamic test data
+    pub example: serde_json::Value, // dynamic test data
     pub expected_response_body: serde_json::Value,
     pub expected_status_code: i16,
 }

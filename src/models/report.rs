@@ -12,13 +12,13 @@ pub struct Report {
     pub collection_id: Option<Uuid>, // nullable for project-level reports
 
     // Report metadata
-    pub report_level: i16,           // 1 = collection, 2 = project
+    pub report_level: i16, // 1 = collection, 2 = project
     pub report_type: Option<String>,
 
     // Status and results
     pub finished: bool,
     pub calculated: bool,
-    pub pass_rate: Option<Decimal>,  // percentage (0.00 - 100.00)
+    pub pass_rate: Option<Decimal>, // percentage (0.00 - 100.00)
     pub response_count: i32,
 
     pub created_at: OffsetDateTime,

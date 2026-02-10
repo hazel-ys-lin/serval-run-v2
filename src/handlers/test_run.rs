@@ -121,8 +121,7 @@ pub async fn run_scenario_test(
     Json(payload): Json<RunTestRequest>,
 ) -> AppResult<Json<serde_json::Value>> {
     // Validate scenario ownership
-    let scenario =
-        ScenarioRepository::find_by_id_and_user(&state.db, scenario_id, user.id).await?;
+    let scenario = ScenarioRepository::find_by_id_and_user(&state.db, scenario_id, user.id).await?;
 
     // Validate API ownership
     let api = ApiRepository::find_by_id_and_user(&state.db, scenario.api_id, user.id).await?;
@@ -156,7 +155,9 @@ pub async fn run_scenario_test(
             message: "Test job queued successfully".to_string(),
         };
 
-        Ok(Json(serde_json::to_value(response).map_err(|e| AppError::Internal(e.to_string()))?))
+        Ok(Json(
+            serde_json::to_value(response).map_err(|e| AppError::Internal(e.to_string()))?,
+        ))
     } else {
         // Sync execution - run immediately
         let config = TestConfig {
@@ -169,7 +170,9 @@ pub async fn run_scenario_test(
         let results = runner.run_scenario(&scenario, &api, &environment).await?;
 
         let response = build_test_run_response(results);
-        Ok(Json(serde_json::to_value(response).map_err(|e| AppError::Internal(e.to_string()))?))
+        Ok(Json(
+            serde_json::to_value(response).map_err(|e| AppError::Internal(e.to_string()))?,
+        ))
     }
 }
 
@@ -240,7 +243,9 @@ pub async fn run_api_tests(
             message: "Test job queued successfully".to_string(),
         };
 
-        Ok(Json(serde_json::to_value(response).map_err(|e| AppError::Internal(e.to_string()))?))
+        Ok(Json(
+            serde_json::to_value(response).map_err(|e| AppError::Internal(e.to_string()))?,
+        ))
     } else {
         // Sync execution - run immediately
         let config = TestConfig {
@@ -258,7 +263,9 @@ pub async fn run_api_tests(
         }
 
         let response = build_test_run_response(all_results);
-        Ok(Json(serde_json::to_value(response).map_err(|e| AppError::Internal(e.to_string()))?))
+        Ok(Json(
+            serde_json::to_value(response).map_err(|e| AppError::Internal(e.to_string()))?,
+        ))
     }
 }
 
@@ -333,7 +340,9 @@ pub async fn run_collection_tests(
             message: "Test job queued successfully".to_string(),
         };
 
-        Ok(Json(serde_json::to_value(response).map_err(|e| AppError::Internal(e.to_string()))?))
+        Ok(Json(
+            serde_json::to_value(response).map_err(|e| AppError::Internal(e.to_string()))?,
+        ))
     } else {
         // Sync execution - run immediately
         let config = TestConfig {
@@ -362,7 +371,9 @@ pub async fn run_collection_tests(
         }
 
         let response = build_test_run_response(all_results);
-        Ok(Json(serde_json::to_value(response).map_err(|e| AppError::Internal(e.to_string()))?))
+        Ok(Json(
+            serde_json::to_value(response).map_err(|e| AppError::Internal(e.to_string()))?,
+        ))
     }
 }
 
