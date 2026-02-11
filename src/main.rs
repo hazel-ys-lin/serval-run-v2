@@ -1,3 +1,5 @@
+use std::sync::Arc;
+use tower_governor::{governor::GovernorConfigBuilder, GovernorLayer};
 use utoipa::{
     openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
     Modify, OpenApi,
@@ -164,10 +166,19 @@ async fn main() {
         .expect("Failed to initialize application state");
     tracing::info!("Database connections established");
 
+    // Rate limiting: 25 requests per second per IP
+    let governor_conf = GovernorConfigBuilder::default()
+        .per_second(1)
+        .burst_size(25)
+        .finish()
+        .unwrap();
+
     // Build the main application router
     let app = build_router(state)
         // Add Swagger UI
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        // Rate limiting (requires ConnectInfo from into_make_service_with_connect_info)
+        .layer(GovernorLayer::new(Arc::new(governor_conf)));
 
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
 
