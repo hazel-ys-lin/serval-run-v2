@@ -7,7 +7,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::error::AppResult;
-use crate::handlers::PaginationParams;
+use crate::handlers::{validate_optional, validate_required, PaginationParams};
 use crate::middlewares::AuthUser;
 use crate::models::{Collection, CreateCollection, UpdateCollection};
 use crate::repositories::CollectionRepository;
@@ -87,6 +87,9 @@ pub async fn create_collection(
     Path(project_id): Path<Uuid>,
     Json(payload): Json<CreateCollectionRequest>,
 ) -> AppResult<Json<CollectionResponse>> {
+    validate_required(&payload.name, "Name", 100)?;
+    validate_optional(&payload.description, "Description", 1000)?;
+
     let create_collection = CreateCollection {
         name: payload.name,
         description: payload.description,
@@ -187,6 +190,9 @@ pub async fn update_collection(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateCollectionRequest>,
 ) -> AppResult<Json<CollectionResponse>> {
+    validate_optional(&payload.name, "Name", 100)?;
+    validate_optional(&payload.description, "Description", 1000)?;
+
     let update_collection = UpdateCollection {
         name: payload.name,
         description: payload.description,

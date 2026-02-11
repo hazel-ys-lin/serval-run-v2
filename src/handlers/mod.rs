@@ -20,7 +20,7 @@ pub use collection::{
     create_collection, delete_collection, get_collection, list_collections, update_collection,
     CollectionListResponse, CollectionResponse, CreateCollectionRequest, UpdateCollectionRequest,
 };
-pub use common::PaginationParams;
+pub use common::{validate_optional, validate_required, PaginationParams};
 pub use environment::{
     create_environment, delete_environment, get_environment, list_environments, update_environment,
     CreateEnvironmentRequest, EnvironmentListResponse, EnvironmentResponse,

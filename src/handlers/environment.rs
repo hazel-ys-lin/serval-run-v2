@@ -7,7 +7,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::error::AppResult;
-use crate::handlers::PaginationParams;
+use crate::handlers::{validate_optional, validate_required, PaginationParams};
 use crate::middlewares::AuthUser;
 use crate::models::{CreateEnvironment, Environment, UpdateEnvironment};
 use crate::repositories::EnvironmentRepository;
@@ -87,6 +87,9 @@ pub async fn create_environment(
     Path(project_id): Path<Uuid>,
     Json(payload): Json<CreateEnvironmentRequest>,
 ) -> AppResult<Json<EnvironmentResponse>> {
+    validate_required(&payload.title, "Title", 100)?;
+    validate_required(&payload.domain_name, "Domain name", 2048)?;
+
     let create_env = CreateEnvironment {
         title: payload.title,
         domain_name: payload.domain_name,
@@ -187,6 +190,9 @@ pub async fn update_environment(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateEnvironmentRequest>,
 ) -> AppResult<Json<EnvironmentResponse>> {
+    validate_optional(&payload.title, "Title", 100)?;
+    validate_optional(&payload.domain_name, "Domain name", 2048)?;
+
     let update_env = UpdateEnvironment {
         title: payload.title,
         domain_name: payload.domain_name,

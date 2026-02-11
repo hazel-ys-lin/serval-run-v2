@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::error::AppResult;
-use crate::handlers::PaginationParams;
+use crate::error::{AppError, AppResult};
+use crate::handlers::{validate_optional, validate_required, PaginationParams};
 use crate::middlewares::AuthUser;
 use crate::models::{CreateScenario, GherkinStep, Scenario, TestExample, UpdateScenario};
 use crate::repositories::mongo::MongoRepository;
@@ -176,6 +176,9 @@ pub async fn create_scenario(
     Path(api_id): Path<Uuid>,
     Json(payload): Json<CreateScenarioRequest>,
 ) -> AppResult<Json<ScenarioResponse>> {
+    validate_required(&payload.title, "Title", 200)?;
+    validate_optional(&payload.description, "Description", 1000)?;
+
     let create_scenario = CreateScenario {
         title: payload.title,
         description: payload.description,
@@ -295,6 +298,9 @@ pub async fn update_scenario(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateScenarioRequest>,
 ) -> AppResult<Json<ScenarioResponse>> {
+    validate_optional(&payload.title, "Title", 200)?;
+    validate_optional(&payload.description, "Description", 1000)?;
+
     let update_scenario = UpdateScenario {
         title: payload.title,
         description: payload.description,
@@ -376,6 +382,12 @@ pub async fn parse_gherkin(
     Path(_api_id): Path<Uuid>,
     Json(payload): Json<ParseGherkinRequest>,
 ) -> AppResult<Json<ParseGherkinResponse>> {
+    if payload.gherkin_code.len() > 50_000 {
+        return Err(AppError::Validation(
+            "Gherkin code must be at most 50000 characters".to_string(),
+        ));
+    }
+
     let parsed = GherkinService::parse(&payload.gherkin_code)?;
 
     let scenarios = parsed
@@ -452,6 +464,12 @@ pub async fn create_from_gherkin(
     Path(api_id): Path<Uuid>,
     Json(payload): Json<ParseGherkinRequest>,
 ) -> AppResult<Json<BatchCreateResponse>> {
+    if payload.gherkin_code.len() > 50_000 {
+        return Err(AppError::Validation(
+            "Gherkin code must be at most 50000 characters".to_string(),
+        ));
+    }
+
     let parsed = GherkinService::parse(&payload.gherkin_code)?;
 
     // Save raw Gherkin document to MongoDB

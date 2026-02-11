@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::error::AppResult;
-use crate::handlers::PaginationParams;
+use crate::error::{AppError, AppResult};
+use crate::handlers::{validate_optional, validate_required, PaginationParams};
 use crate::middlewares::AuthUser;
 use crate::models::{Api, CreateApi, UpdateApi};
 use crate::repositories::ApiRepository;
@@ -99,6 +99,11 @@ pub async fn create_api(
     Path(collection_id): Path<Uuid>,
     Json(payload): Json<CreateApiRequest>,
 ) -> AppResult<Json<ApiResponse>> {
+    validate_required(&payload.name, "Name", 100)?;
+    validate_required(&payload.endpoint, "Endpoint", 2048)?;
+    validate_optional(&payload.description, "Description", 1000)?;
+    validate_http_method(&payload.http_method)?;
+
     let create_api = CreateApi {
         name: payload.name,
         http_method: payload.http_method,
@@ -200,6 +205,13 @@ pub async fn update_api(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateApiRequest>,
 ) -> AppResult<Json<ApiResponse>> {
+    validate_optional(&payload.name, "Name", 100)?;
+    validate_optional(&payload.endpoint, "Endpoint", 2048)?;
+    validate_optional(&payload.description, "Description", 1000)?;
+    if let Some(ref method) = payload.http_method {
+        validate_http_method(method)?;
+    }
+
     let update_api = UpdateApi {
         name: payload.name,
         http_method: payload.http_method,
@@ -235,5 +247,18 @@ pub async fn delete_api(
     Path(id): Path<Uuid>,
 ) -> AppResult<()> {
     ApiRepository::delete_by_user(&state.db, id, user.id).await?;
+    Ok(())
+}
+
+const VALID_HTTP_METHODS: &[&str] = &["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"];
+
+fn validate_http_method(method: &str) -> AppResult<()> {
+    if !VALID_HTTP_METHODS.contains(&method.to_uppercase().as_str()) {
+        return Err(AppError::Validation(format!(
+            "Invalid HTTP method '{}'. Must be one of: {}",
+            method,
+            VALID_HTTP_METHODS.join(", ")
+        )));
+    }
     Ok(())
 }

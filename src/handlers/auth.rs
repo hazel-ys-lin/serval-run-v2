@@ -56,20 +56,19 @@ pub async fn register(
     Json(payload): Json<RegisterRequest>,
 ) -> AppResult<Json<AuthResponse>> {
     // Validate input
-    if payload.email.is_empty() {
-        return Err(AppError::Validation("Email is required".to_string()));
-    }
+    use crate::handlers::{validate_optional, validate_required};
+    validate_required(&payload.email, "Email", 255)?;
     if !payload.email.contains('@') || !payload.email.contains('.') {
         return Err(AppError::Validation("Invalid email format".to_string()));
     }
+    validate_required(&payload.password, "Password", 128)?;
     if payload.password.len() < 8 {
         return Err(AppError::Validation(
             "Password must be at least 8 characters".to_string(),
         ));
     }
-    if payload.name.is_empty() {
-        return Err(AppError::Validation("Name is required".to_string()));
-    }
+    validate_required(&payload.name, "Name", 100)?;
+    validate_optional(&payload.job_title, "Job title", 100)?;
 
     // Hash password
     let password_hash = AuthService::hash_password(&payload.password)?;
@@ -165,6 +164,10 @@ pub async fn update_me(
     State(state): State<AppState>,
     Json(payload): Json<UpdateUserRequest>,
 ) -> AppResult<Json<UserResponse>> {
+    use crate::handlers::validate_optional;
+    validate_optional(&payload.name, "Name", 100)?;
+    validate_optional(&payload.job_title, "Job title", 100)?;
+
     let update_user = crate::models::UpdateUser {
         name: payload.name,
         job_title: payload.job_title,

@@ -7,7 +7,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::error::AppResult;
-use crate::handlers::PaginationParams;
+use crate::handlers::{validate_optional, validate_required, PaginationParams};
 use crate::middlewares::AuthUser;
 use crate::models::{CreateProject, Project, UpdateProject};
 use crate::repositories::ProjectRepository;
@@ -82,6 +82,9 @@ pub async fn create_project(
     State(state): State<AppState>,
     Json(payload): Json<CreateProjectRequest>,
 ) -> AppResult<Json<ProjectResponse>> {
+    validate_required(&payload.name, "Name", 100)?;
+    validate_optional(&payload.description, "Description", 1000)?;
+
     let create_project = CreateProject {
         name: payload.name,
         description: payload.description,
@@ -174,6 +177,9 @@ pub async fn update_project(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateProjectRequest>,
 ) -> AppResult<Json<ProjectResponse>> {
+    validate_optional(&payload.name, "Name", 100)?;
+    validate_optional(&payload.description, "Description", 1000)?;
+
     let update_project = UpdateProject {
         name: payload.name,
         description: payload.description,
