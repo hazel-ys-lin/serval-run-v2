@@ -29,10 +29,11 @@ impl ResultHandler {
         let failed = total_tests - passed;
 
         // Determine report level and collection_id based on job type
+        // Level: 0 = scenario, 1 = api, 2 = collection
         let (report_level, collection_id) = match job_type {
-            TestJobType::Scenario => (0_i16, None), // scenario level
-            TestJobType::Api => (1_i16, None),      // api level
-            TestJobType::Collection => (1_i16, Some(target_id)), // collection level
+            TestJobType::Scenario => (0_i16, None),
+            TestJobType::Api => (1_i16, None),
+            TestJobType::Collection => (2_i16, Some(target_id)),
         };
 
         // Create report using PostgreSQL repository
