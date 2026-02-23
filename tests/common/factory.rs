@@ -2,11 +2,11 @@ use uuid::Uuid;
 
 use serval_run::models::{
     Api, Collection, CreateApi, CreateCollection, CreateEnvironment, CreateProject, CreateReport,
-    CreateUser, Environment, Project, Report, User,
+    CreateScenario, CreateUser, Environment, Project, Report, Scenario, User,
 };
 use serval_run::repositories::{
     ApiRepository, CollectionRepository, EnvironmentRepository, ProjectRepository,
-    ReportRepository, UserRepository,
+    ReportRepository, ScenarioRepository, UserRepository,
 };
 use serval_run::services::AuthService;
 use serval_run::state::AppState;
@@ -139,6 +139,21 @@ impl<'a> Factory<'a> {
         };
 
         ApiRepository::create(&self.state.db, collection_id, user_id, &input)
+            .await
+            .unwrap()
+    }
+
+    /// Create a test scenario
+    pub async fn create_scenario(&self, api_id: Uuid, user_id: Uuid) -> Scenario {
+        let input = CreateScenario {
+            title: format!("Test Scenario {}", Uuid::new_v4()),
+            description: Some("Test scenario description".to_string()),
+            tags: Some(vec!["test".to_string()]),
+            steps: vec![],
+            examples: vec![],
+        };
+
+        ScenarioRepository::create(&self.state.db, api_id, user_id, &input)
             .await
             .unwrap()
     }
