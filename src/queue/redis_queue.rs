@@ -204,13 +204,18 @@ impl JobQueue for RedisQueue {
     async fn list_jobs_by_user(&self, user_id: Uuid, limit: u64) -> AppResult<Vec<TestJob>> {
         let mut conn = self.conn.clone();
 
-        let job_ids: Vec<String> = conn
-            .smembers(Self::user_key(user_id))
+        // Use SRANDMEMBER to avoid loading the entire set into memory.
+        // This returns up to `limit` random members instead of all members.
+        // Note: for deterministic ordering, consider migrating to a Sorted Set (ZADD/ZREVRANGE).
+        let job_ids: Vec<String> = redis::cmd("SRANDMEMBER")
+            .arg(Self::user_key(user_id))
+            .arg(limit as i64)
+            .query_async(&mut conn)
             .await
             .map_err(|e| AppError::Internal(format!("Redis error: {}", e)))?;
 
         let mut jobs = Vec::new();
-        for job_id_str in job_ids.into_iter().take(limit as usize) {
+        for job_id_str in job_ids {
             if let Ok(job_id) = Uuid::parse_str(&job_id_str) {
                 if let Some(job) = self.get_job(job_id).await? {
                     jobs.push(job);
