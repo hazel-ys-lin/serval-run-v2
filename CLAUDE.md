@@ -54,5 +54,10 @@ cargo test --test api_test  # specific test file
 ## Dependencies
 - `jsonwebtoken` uses v10 with `aws_lc_rs` feature flag for crypto backend.
 
+## Learning Notes
+- 每次檢討、修改或修 bug 時，若有學習價值，請將心得更新到 `RUST_LEARNING_NOTES.md`。
+- `RUST_LEARNING_NOTES.md` **不要 commit 到 git**（僅供本地學習參考）。
+- 筆記以 Python/FastAPI 開發者的角度撰寫，幫助理解 Rust/Axum 的對應概念。
+
 ## User Preferences
 - Communicates in Traditional Chinese (繁體中文).
