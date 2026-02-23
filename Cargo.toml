@@ -58,7 +58,7 @@ uuid = { version = "1.16", features = ["v4", "serde"] }
 rust_decimal = { version = "1.37", features = ["db-postgres", "serde"] }
 
 # Authentication
-jsonwebtoken = "9" # v10 has compilation issues
+jsonwebtoken = { version = "10", features = ["aws_lc_rs"] }
 argon2 = "0.5"
 
 # Error handling
