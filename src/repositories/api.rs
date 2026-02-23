@@ -6,10 +6,9 @@ use sea_orm::{
 use uuid::Uuid;
 
 use crate::entity::api::{self, ActiveModel, Column, Entity as ApiEntity};
-use crate::entity::collection::Entity as CollectionEntity;
-use crate::entity::project::{Column as ProjectColumn, Entity as ProjectEntity};
 use crate::error::{AppError, AppResult};
 use crate::models::{Api, CreateApi, UpdateApi};
+use crate::repositories::ownership::OwnershipVerifier;
 use crate::repositories::Repository;
 
 /// API repository for database operations
@@ -62,7 +61,7 @@ impl ApiRepository {
         input: &CreateApi,
     ) -> AppResult<Api> {
         // Verify collection ownership (which verifies project -> user)
-        Self::verify_collection_ownership(db, collection_id, user_id).await?;
+        OwnershipVerifier::verify_collection(db, collection_id, user_id).await?;
 
         let model = ActiveModel {
             id: Set(Uuid::new_v4()),
@@ -92,7 +91,7 @@ impl ApiRepository {
             .ok_or_else(|| AppError::NotFound("Api".to_string()))?;
 
         // Verify collection ownership
-        Self::verify_collection_ownership(db, model.collection_id, user_id).await?;
+        OwnershipVerifier::verify_collection(db, model.collection_id, user_id).await?;
 
         Ok(model.into())
     }
@@ -106,7 +105,7 @@ impl ApiRepository {
         offset: u64,
     ) -> AppResult<Vec<Api>> {
         // Verify collection ownership
-        Self::verify_collection_ownership(db, collection_id, user_id).await?;
+        OwnershipVerifier::verify_collection(db, collection_id, user_id).await?;
 
         let models = ApiEntity::find()
             .filter(Column::CollectionId.eq(collection_id))
@@ -126,7 +125,7 @@ impl ApiRepository {
         user_id: Uuid,
     ) -> AppResult<u64> {
         // Verify collection ownership
-        Self::verify_collection_ownership(db, collection_id, user_id).await?;
+        OwnershipVerifier::verify_collection(db, collection_id, user_id).await?;
 
         let count = ApiEntity::find()
             .filter(Column::CollectionId.eq(collection_id))
@@ -149,7 +148,7 @@ impl ApiRepository {
             .ok_or_else(|| AppError::NotFound("Api".to_string()))?;
 
         // Verify collection ownership
-        Self::verify_collection_ownership(db, model.collection_id, user_id).await?;
+        OwnershipVerifier::verify_collection(db, model.collection_id, user_id).await?;
 
         let mut active: ActiveModel = model.into();
 
@@ -182,32 +181,10 @@ impl ApiRepository {
             .ok_or_else(|| AppError::NotFound("Api".to_string()))?;
 
         // Verify collection ownership
-        Self::verify_collection_ownership(db, model.collection_id, user_id).await?;
+        OwnershipVerifier::verify_collection(db, model.collection_id, user_id).await?;
 
         let active: ActiveModel = model.into();
         active.delete(db).await?;
-
-        Ok(())
-    }
-
-    /// Verify that the user owns the collection (through project ownership)
-    async fn verify_collection_ownership(
-        db: &DatabaseConnection,
-        collection_id: Uuid,
-        user_id: Uuid,
-    ) -> AppResult<()> {
-        // First find the collection to get its project_id
-        let collection = CollectionEntity::find_by_id(collection_id)
-            .one(db)
-            .await?
-            .ok_or_else(|| AppError::NotFound("Collection".to_string()))?;
-
-        // Then verify the project is owned by the user
-        ProjectEntity::find_by_id(collection.project_id)
-            .filter(ProjectColumn::UserId.eq(user_id))
-            .one(db)
-            .await?
-            .ok_or_else(|| AppError::NotFound("Project".to_string()))?;
 
         Ok(())
     }

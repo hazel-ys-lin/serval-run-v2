@@ -5,11 +5,10 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use crate::entity::project::{Column as ProjectColumn, Entity as ProjectEntity};
-use crate::entity::report::Entity as ReportEntity;
 use crate::entity::response::{self, ActiveModel, Column, Entity as ResponseEntity};
 use crate::error::{AppError, AppResult};
 use crate::models::{CreateResponse, Response};
+use crate::repositories::ownership::OwnershipVerifier;
 use crate::repositories::Repository;
 
 /// Response repository for database operations
@@ -106,7 +105,7 @@ impl ResponseRepository {
             .ok_or_else(|| AppError::NotFound("Response".to_string()))?;
 
         // Verify ownership through report -> project chain
-        Self::verify_response_ownership(db, model.report_id, user_id).await?;
+        OwnershipVerifier::verify_report(db, model.report_id, user_id).await?;
 
         Ok(model.into())
     }
@@ -120,7 +119,7 @@ impl ResponseRepository {
         offset: u64,
     ) -> AppResult<Vec<Response>> {
         // Verify ownership
-        Self::verify_response_ownership(db, report_id, user_id).await?;
+        OwnershipVerifier::verify_report(db, report_id, user_id).await?;
 
         let models = ResponseEntity::find()
             .filter(Column::ReportId.eq(report_id))
@@ -140,7 +139,7 @@ impl ResponseRepository {
         user_id: Uuid,
     ) -> AppResult<u64> {
         // Verify ownership
-        Self::verify_response_ownership(db, report_id, user_id).await?;
+        OwnershipVerifier::verify_report(db, report_id, user_id).await?;
 
         let count = ResponseEntity::find()
             .filter(Column::ReportId.eq(report_id))
@@ -157,7 +156,7 @@ impl ResponseRepository {
         user_id: Uuid,
     ) -> AppResult<(i64, i64, i64)> {
         // Verify ownership
-        Self::verify_response_ownership(db, report_id, user_id).await?;
+        OwnershipVerifier::verify_report(db, report_id, user_id).await?;
 
         let all_responses = ResponseEntity::find()
             .filter(Column::ReportId.eq(report_id))
@@ -178,7 +177,7 @@ impl ResponseRepository {
         user_id: Uuid,
     ) -> AppResult<u64> {
         // Verify ownership
-        Self::verify_response_ownership(db, report_id, user_id).await?;
+        OwnershipVerifier::verify_report(db, report_id, user_id).await?;
 
         let result = ResponseEntity::delete_many()
             .filter(Column::ReportId.eq(report_id))
@@ -186,28 +185,6 @@ impl ResponseRepository {
             .await?;
 
         Ok(result.rows_affected)
-    }
-
-    /// Verify ownership through report -> project -> user chain
-    async fn verify_response_ownership(
-        db: &DatabaseConnection,
-        report_id: Uuid,
-        user_id: Uuid,
-    ) -> AppResult<()> {
-        // Get the report
-        let report = ReportEntity::find_by_id(report_id)
-            .one(db)
-            .await?
-            .ok_or_else(|| AppError::NotFound("Report".to_string()))?;
-
-        // Verify project ownership
-        ProjectEntity::find_by_id(report.project_id)
-            .filter(ProjectColumn::UserId.eq(user_id))
-            .one(db)
-            .await?
-            .ok_or_else(|| AppError::NotFound("Project".to_string()))?;
-
-        Ok(())
     }
 }
 

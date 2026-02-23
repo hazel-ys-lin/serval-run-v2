@@ -6,10 +6,10 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use crate::entity::project::{Column as ProjectColumn, Entity as ProjectEntity};
 use crate::entity::report::{self, ActiveModel, Column, Entity as ReportEntity};
 use crate::error::{AppError, AppResult};
 use crate::models::{CreateReport, Report};
+use crate::repositories::ownership::OwnershipVerifier;
 use crate::repositories::Repository;
 
 /// Report repository for database operations
@@ -62,7 +62,7 @@ impl ReportRepository {
         input: &CreateReport,
     ) -> AppResult<Report> {
         // Verify project ownership
-        Self::verify_project_ownership(db, project_id, user_id).await?;
+        OwnershipVerifier::verify_project(db, project_id, user_id).await?;
 
         let model = ActiveModel {
             id: Set(Uuid::new_v4()),
@@ -95,7 +95,7 @@ impl ReportRepository {
             .ok_or_else(|| AppError::NotFound("Report".to_string()))?;
 
         // Verify project ownership
-        Self::verify_project_ownership(db, model.project_id, user_id).await?;
+        OwnershipVerifier::verify_project(db, model.project_id, user_id).await?;
 
         Ok(model.into())
     }
@@ -109,7 +109,7 @@ impl ReportRepository {
         offset: u64,
     ) -> AppResult<Vec<Report>> {
         // Verify project ownership
-        Self::verify_project_ownership(db, project_id, user_id).await?;
+        OwnershipVerifier::verify_project(db, project_id, user_id).await?;
 
         let models = ReportEntity::find()
             .filter(Column::ProjectId.eq(project_id))
@@ -129,7 +129,7 @@ impl ReportRepository {
         user_id: Uuid,
     ) -> AppResult<u64> {
         // Verify project ownership
-        Self::verify_project_ownership(db, project_id, user_id).await?;
+        OwnershipVerifier::verify_project(db, project_id, user_id).await?;
 
         let count = ReportEntity::find()
             .filter(Column::ProjectId.eq(project_id))
@@ -153,7 +153,7 @@ impl ReportRepository {
             .ok_or_else(|| AppError::NotFound("Report".to_string()))?;
 
         // Verify project ownership
-        Self::verify_project_ownership(db, model.project_id, user_id).await?;
+        OwnershipVerifier::verify_project(db, model.project_id, user_id).await?;
 
         let mut active: ActiveModel = model.into();
         active.finished = Set(true);
@@ -174,25 +174,10 @@ impl ReportRepository {
             .ok_or_else(|| AppError::NotFound("Report".to_string()))?;
 
         // Verify project ownership
-        Self::verify_project_ownership(db, model.project_id, user_id).await?;
+        OwnershipVerifier::verify_project(db, model.project_id, user_id).await?;
 
         let active: ActiveModel = model.into();
         active.delete(db).await?;
-
-        Ok(())
-    }
-
-    /// Verify that the user owns the project
-    async fn verify_project_ownership(
-        db: &DatabaseConnection,
-        project_id: Uuid,
-        user_id: Uuid,
-    ) -> AppResult<()> {
-        ProjectEntity::find_by_id(project_id)
-            .filter(ProjectColumn::UserId.eq(user_id))
-            .one(db)
-            .await?
-            .ok_or_else(|| AppError::NotFound("Project".to_string()))?;
 
         Ok(())
     }

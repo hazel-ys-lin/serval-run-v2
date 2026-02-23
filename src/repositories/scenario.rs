@@ -5,12 +5,10 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use crate::entity::api::Entity as ApiEntity;
-use crate::entity::collection::Entity as CollectionEntity;
-use crate::entity::project::{Column as ProjectColumn, Entity as ProjectEntity};
 use crate::entity::scenario::{self, ActiveModel, Column, Entity as ScenarioEntity};
 use crate::error::{AppError, AppResult};
 use crate::models::{CreateScenario, Scenario, UpdateScenario};
+use crate::repositories::ownership::OwnershipVerifier;
 use crate::repositories::Repository;
 
 /// Scenario repository for database operations
@@ -62,8 +60,7 @@ impl ScenarioRepository {
         user_id: Uuid,
         input: &CreateScenario,
     ) -> AppResult<Scenario> {
-        // Verify API ownership (which verifies collection -> project -> user)
-        Self::verify_api_ownership(db, api_id, user_id).await?;
+        OwnershipVerifier::verify_api(db, api_id, user_id).await?;
 
         let steps_json = serde_json::to_value(&input.steps)
             .map_err(|e| AppError::Validation(format!("Invalid steps JSON: {}", e)))?;
@@ -97,8 +94,7 @@ impl ScenarioRepository {
             .await?
             .ok_or_else(|| AppError::NotFound("Scenario".to_string()))?;
 
-        // Verify API ownership
-        Self::verify_api_ownership(db, model.api_id, user_id).await?;
+        OwnershipVerifier::verify_api(db, model.api_id, user_id).await?;
 
         Ok(model.into())
     }
@@ -111,8 +107,7 @@ impl ScenarioRepository {
         limit: u64,
         offset: u64,
     ) -> AppResult<Vec<Scenario>> {
-        // Verify API ownership
-        Self::verify_api_ownership(db, api_id, user_id).await?;
+        OwnershipVerifier::verify_api(db, api_id, user_id).await?;
 
         let models = ScenarioEntity::find()
             .filter(Column::ApiId.eq(api_id))
@@ -131,8 +126,7 @@ impl ScenarioRepository {
         api_id: Uuid,
         user_id: Uuid,
     ) -> AppResult<u64> {
-        // Verify API ownership
-        Self::verify_api_ownership(db, api_id, user_id).await?;
+        OwnershipVerifier::verify_api(db, api_id, user_id).await?;
 
         let count = ScenarioEntity::find()
             .filter(Column::ApiId.eq(api_id))
@@ -154,8 +148,7 @@ impl ScenarioRepository {
             .await?
             .ok_or_else(|| AppError::NotFound("Scenario".to_string()))?;
 
-        // Verify API ownership
-        Self::verify_api_ownership(db, model.api_id, user_id).await?;
+        OwnershipVerifier::verify_api(db, model.api_id, user_id).await?;
 
         let mut active: ActiveModel = model.into();
 
@@ -191,39 +184,10 @@ impl ScenarioRepository {
             .await?
             .ok_or_else(|| AppError::NotFound("Scenario".to_string()))?;
 
-        // Verify API ownership
-        Self::verify_api_ownership(db, model.api_id, user_id).await?;
+        OwnershipVerifier::verify_api(db, model.api_id, user_id).await?;
 
         let active: ActiveModel = model.into();
         active.delete(db).await?;
-
-        Ok(())
-    }
-
-    /// Verify that the user owns the API (through collection -> project ownership)
-    async fn verify_api_ownership(
-        db: &DatabaseConnection,
-        api_id: Uuid,
-        user_id: Uuid,
-    ) -> AppResult<()> {
-        // Find the API to get its collection_id
-        let api = ApiEntity::find_by_id(api_id)
-            .one(db)
-            .await?
-            .ok_or_else(|| AppError::NotFound("Api".to_string()))?;
-
-        // Find the collection to get its project_id
-        let collection = CollectionEntity::find_by_id(api.collection_id)
-            .one(db)
-            .await?
-            .ok_or_else(|| AppError::NotFound("Collection".to_string()))?;
-
-        // Verify the project is owned by the user
-        ProjectEntity::find_by_id(collection.project_id)
-            .filter(ProjectColumn::UserId.eq(user_id))
-            .one(db)
-            .await?
-            .ok_or_else(|| AppError::NotFound("Project".to_string()))?;
 
         Ok(())
     }
