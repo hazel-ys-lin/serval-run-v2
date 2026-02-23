@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
-    QueryOrder, Set,
+    QueryOrder, QuerySelect, Set,
 };
 use uuid::Uuid;
 
@@ -38,8 +38,9 @@ impl Repository<User> for UserRepository {
     async fn list(db: &DatabaseConnection, limit: u64, offset: u64) -> AppResult<Vec<User>> {
         let models = UserEntity::find()
             .order_by_desc(Column::CreatedAt)
-            .paginate(db, limit)
-            .fetch_page(offset / limit)
+            .offset(offset)
+            .limit(limit)
+            .all(db)
             .await?;
 
         Ok(models.into_iter().map(|m| m.into()).collect())
@@ -74,7 +75,8 @@ impl UserRepository {
             if e.to_string().contains("duplicate key") || e.to_string().contains("unique") {
                 AppError::Conflict("Email already exists".to_string())
             } else {
-                AppError::Database(e.to_string())
+                tracing::error!("Failed to create user: {e}");
+                AppError::Database("An unexpected database error occurred".to_string())
             }
         })?;
 

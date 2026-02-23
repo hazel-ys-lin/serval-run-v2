@@ -111,7 +111,10 @@ impl From<sqlx::Error> for AppError {
     fn from(err: sqlx::Error) -> Self {
         match err {
             sqlx::Error::RowNotFound => AppError::NotFound("Resource".to_string()),
-            _ => AppError::Database(err.to_string()),
+            _ => {
+                tracing::error!("SQLx error: {err}");
+                AppError::Database("An unexpected database error occurred".to_string())
+            }
         }
     }
 }
@@ -124,7 +127,10 @@ impl From<sea_orm::DbErr> for AppError {
                 AppError::Conflict("Record already exists".to_string())
             }
             sea_orm::DbErr::RecordNotUpdated => AppError::NotFound("Resource".to_string()),
-            _ => AppError::Database(err.to_string()),
+            _ => {
+                tracing::error!("SeaORM error: {err}");
+                AppError::Database("An unexpected database error occurred".to_string())
+            }
         }
     }
 }
