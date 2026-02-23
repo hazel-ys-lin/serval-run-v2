@@ -6,7 +6,7 @@ CREATE TABLE reports (
     collection_id UUID REFERENCES collections(id) ON DELETE SET NULL,  -- nullable for project-level reports
 
     -- Report metadata
-    report_level SMALLINT NOT NULL DEFAULT 1,  -- 0 = scenario, 1 = api, 2 = collection
+    report_level SMALLINT NOT NULL DEFAULT 1,  -- 1 = collection, 2 = project
     report_type VARCHAR(50),                   -- type of test run
 
     -- Status and results

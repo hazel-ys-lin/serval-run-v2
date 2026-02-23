@@ -33,13 +33,9 @@ impl OwnershipVerifier {
         collection_id: Uuid,
         user_id: Uuid,
     ) -> AppResult<()> {
-        use sea_orm::QuerySelect;
-
         CollectionEntity::find_by_id(collection_id)
             .inner_join(ProjectEntity)
             .filter(ProjectColumn::UserId.eq(user_id))
-            .select_only()
-            .column(crate::entity::collection::Column::Id)
             .one(db)
             .await?
             .ok_or_else(|| AppError::NotFound("Collection".to_string()))?;
@@ -59,8 +55,6 @@ impl OwnershipVerifier {
                 crate::entity::collection::Relation::Project.def(),
             )
             .filter(ProjectColumn::UserId.eq(user_id))
-            .select_only()
-            .column(crate::entity::api::Column::Id)
             .one(db)
             .await?
             .ok_or_else(|| AppError::NotFound("Api".to_string()))?;
@@ -75,13 +69,10 @@ impl OwnershipVerifier {
         user_id: Uuid,
     ) -> AppResult<()> {
         use crate::entity::report::Entity as ReportEntity;
-        use sea_orm::QuerySelect;
 
         ReportEntity::find_by_id(report_id)
             .inner_join(ProjectEntity)
             .filter(ProjectColumn::UserId.eq(user_id))
-            .select_only()
-            .column(crate::entity::report::Column::Id)
             .one(db)
             .await?
             .ok_or_else(|| AppError::NotFound("Report".to_string()))?;
