@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use tokio::signal;
 use tower_governor::{governor::GovernorConfigBuilder, GovernorLayer};
 use utoipa::{
     openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
@@ -171,7 +172,7 @@ async fn main() {
         .per_second(1)
         .burst_size(25)
         .finish()
-        .unwrap();
+        .expect("Failed to build rate limiter configuration");
 
     // Build the main application router
     let app = build_router(state)
@@ -180,7 +181,9 @@ async fn main() {
         // Rate limiting (requires ConnectInfo from into_make_service_with_connect_info)
         .layer(GovernorLayer::new(Arc::new(governor_conf)));
 
-    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(&addr)
+        .await
+        .expect("Failed to bind server address");
 
     tracing::info!("Server started on http://{}", addr);
     tracing::info!("Swagger UI: http://{}/swagger-ui/", addr);
@@ -188,6 +191,36 @@ async fn main() {
         listener,
         app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
     )
+    .with_graceful_shutdown(shutdown_signal())
     .await
-    .unwrap();
+    .expect("Server exited with error");
+
+    tracing::info!("Server shutdown complete");
+}
+
+/// Wait for shutdown signal (Ctrl+C or SIGTERM)
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("Failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("Failed to install SIGTERM handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
+
+    tracing::info!("Shutdown signal received, gracefully shutting down...");
 }
