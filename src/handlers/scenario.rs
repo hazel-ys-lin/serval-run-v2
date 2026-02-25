@@ -7,7 +7,9 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::error::{AppError, AppResult};
-use crate::handlers::{validate_optional, validate_required, PaginationParams};
+use crate::handlers::{
+    validate_optional, validate_required, PaginationParams, ScenarioListResponse,
+};
 use crate::middlewares::AuthUser;
 use crate::models::{CreateScenario, GherkinStep, Scenario, TestExample, UpdateScenario};
 use crate::repositories::mongo::MongoRepository;
@@ -106,14 +108,6 @@ impl From<Scenario> for ScenarioResponse {
             updated_at: s.updated_at,
         }
     }
-}
-
-#[derive(Debug, Serialize, ToSchema)]
-pub struct ScenarioListResponse {
-    pub data: Vec<ScenarioResponse>,
-    pub total: u64,
-    pub limit: u64,
-    pub offset: u64,
 }
 
 /// Response for parsed Gherkin scenarios (preview before saving)

@@ -12,7 +12,9 @@ pub struct Report {
     pub collection_id: Option<Uuid>, // nullable for project-level reports
 
     // Report metadata
-    pub report_level: i16, // 0 = scenario, 1 = api, 2 = collection
+    /// Report scope level: 0 = scenario, 1 = api, 2 = collection.
+    /// Note: migration 007 comment is outdated — actual values are defined here.
+    pub report_level: i16,
     pub report_type: Option<String>,
 
     // Status and results

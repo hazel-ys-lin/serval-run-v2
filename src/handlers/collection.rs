@@ -7,7 +7,9 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::error::AppResult;
-use crate::handlers::{validate_optional, validate_required, PaginationParams};
+use crate::handlers::{
+    validate_optional, validate_required, CollectionListResponse, PaginationParams,
+};
 use crate::middlewares::AuthUser;
 use crate::models::{Collection, CreateCollection, UpdateCollection};
 use crate::repositories::CollectionRepository;
@@ -50,14 +52,6 @@ impl From<Collection> for CollectionResponse {
             updated_at: c.updated_at,
         }
     }
-}
-
-#[derive(Debug, Serialize, ToSchema)]
-pub struct CollectionListResponse {
-    pub data: Vec<CollectionResponse>,
-    pub total: u64,
-    pub limit: u64,
-    pub offset: u64,
 }
 
 // ============ Handlers ============

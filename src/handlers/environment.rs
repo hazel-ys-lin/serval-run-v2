@@ -7,7 +7,9 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::error::AppResult;
-use crate::handlers::{validate_optional, validate_required, PaginationParams};
+use crate::handlers::{
+    validate_optional, validate_required, EnvironmentListResponse, PaginationParams,
+};
 use crate::middlewares::AuthUser;
 use crate::models::{CreateEnvironment, Environment, UpdateEnvironment};
 use crate::repositories::EnvironmentRepository;
@@ -50,14 +52,6 @@ impl From<Environment> for EnvironmentResponse {
             updated_at: e.updated_at,
         }
     }
-}
-
-#[derive(Debug, Serialize, ToSchema)]
-pub struct EnvironmentListResponse {
-    pub data: Vec<EnvironmentResponse>,
-    pub total: u64,
-    pub limit: u64,
-    pub offset: u64,
 }
 
 // ============ Handlers ============

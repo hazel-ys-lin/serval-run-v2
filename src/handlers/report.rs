@@ -8,7 +8,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::error::AppResult;
-use crate::handlers::PaginationParams;
+use crate::handlers::{PaginationParams, ReportListResponse};
 use crate::middlewares::AuthUser;
 use crate::models::{CreateReport, Report};
 use crate::repositories::{ReportRepository, ResponseRepository};
@@ -63,15 +63,6 @@ impl From<Report> for ReportResponse {
             finished_at: r.finished_at,
         }
     }
-}
-
-/// Report list response
-#[derive(Debug, Serialize, ToSchema)]
-pub struct ReportListResponse {
-    pub data: Vec<ReportResponse>,
-    pub total: u64,
-    pub limit: u64,
-    pub offset: u64,
 }
 
 /// Report detail with responses

@@ -61,18 +61,18 @@ pub struct TestRunner {
 
 impl TestRunner {
     /// Create a new TestRunner with default config
-    pub fn new() -> Self {
+    pub fn new() -> AppResult<Self> {
         Self::with_config(TestConfig::default())
     }
 
     /// Create a new TestRunner with custom config
-    pub fn with_config(config: TestConfig) -> Self {
+    pub fn with_config(config: TestConfig) -> AppResult<Self> {
         let client = Client::builder()
             .timeout(config.timeout)
             .build()
-            .expect("Failed to create HTTP client");
+            .map_err(|e| AppError::Internal(format!("Failed to create HTTP client: {e}")))?;
 
-        Self { client, config }
+        Ok(Self { client, config })
     }
 
     /// Run all examples for a scenario
@@ -506,19 +506,13 @@ impl TestRunner {
     }
 }
 
-impl Default for TestRunner {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_substitute_placeholders() {
-        let runner = TestRunner::new();
+        let runner = TestRunner::new().unwrap();
         let example = serde_json::json!({
             "email": "test@example.com",
             "password": "secret123"
@@ -531,7 +525,7 @@ mod tests {
 
     #[test]
     fn test_extract_status_code() {
-        let runner = TestRunner::new();
+        let runner = TestRunner::new().unwrap();
 
         assert_eq!(
             runner.extract_status_code("status should be 200"),
@@ -546,7 +540,7 @@ mod tests {
 
     #[test]
     fn test_json_contains() {
-        let runner = TestRunner::new();
+        let runner = TestRunner::new().unwrap();
 
         let actual = serde_json::json!({
             "id": 1,

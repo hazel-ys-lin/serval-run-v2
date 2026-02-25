@@ -7,7 +7,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::error::{AppError, AppResult};
-use crate::handlers::{validate_optional, validate_required, PaginationParams};
+use crate::handlers::{validate_optional, validate_required, ApiListResponse, PaginationParams};
 use crate::middlewares::AuthUser;
 use crate::models::{Api, CreateApi, UpdateApi};
 use crate::repositories::ApiRepository;
@@ -62,14 +62,6 @@ impl From<Api> for ApiResponse {
             updated_at: a.updated_at,
         }
     }
-}
-
-#[derive(Debug, Serialize, ToSchema)]
-pub struct ApiListResponse {
-    pub data: Vec<ApiResponse>,
-    pub total: u64,
-    pub limit: u64,
-    pub offset: u64,
 }
 
 // ============ Handlers ============

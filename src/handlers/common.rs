@@ -1,7 +1,24 @@
-use serde::Deserialize;
-use utoipa::IntoParams;
+use serde::{Deserialize, Serialize};
+use utoipa::{IntoParams, ToSchema};
 
 use crate::error::{AppError, AppResult};
+
+/// Generic paginated list response used by all list endpoints
+#[derive(Debug, Serialize, ToSchema)]
+pub struct ListResponse<T: Serialize + ToSchema> {
+    pub data: Vec<T>,
+    pub total: u64,
+    pub limit: u64,
+    pub offset: u64,
+}
+
+pub type ProjectListResponse = ListResponse<super::ProjectResponse>;
+pub type CollectionListResponse = ListResponse<super::CollectionResponse>;
+pub type EnvironmentListResponse = ListResponse<super::EnvironmentResponse>;
+pub type ApiListResponse = ListResponse<super::ApiResponse>;
+pub type ScenarioListResponse = ListResponse<super::ScenarioResponse>;
+pub type ReportListResponse = ListResponse<super::ReportResponse>;
+pub type JobListResponse = ListResponse<super::JobStatusResponse>;
 
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct PaginationParams {

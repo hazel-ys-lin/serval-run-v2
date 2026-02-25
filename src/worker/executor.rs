@@ -35,7 +35,7 @@ impl JobExecutor {
             custom_headers: job.config.custom_headers.clone(),
         };
 
-        let test_runner = TestRunner::with_config(test_config);
+        let test_runner = TestRunner::with_config(test_config)?;
 
         // Load environment using Repository trait method
         let environment = <EnvironmentRepository as Repository<Environment>>::find_by_id(

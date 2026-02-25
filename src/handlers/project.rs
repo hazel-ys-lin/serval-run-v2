@@ -7,7 +7,9 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::error::AppResult;
-use crate::handlers::{validate_optional, validate_required, PaginationParams};
+use crate::handlers::{
+    validate_optional, validate_required, PaginationParams, ProjectListResponse,
+};
 use crate::middlewares::AuthUser;
 use crate::models::{CreateProject, Project, UpdateProject};
 use crate::repositories::ProjectRepository;
@@ -50,14 +52,6 @@ impl From<Project> for ProjectResponse {
             updated_at: p.updated_at,
         }
     }
-}
-
-#[derive(Debug, Serialize, ToSchema)]
-pub struct ProjectListResponse {
-    pub data: Vec<ProjectResponse>,
-    pub total: u64,
-    pub limit: u64,
-    pub offset: u64,
 }
 
 // ============ Handlers ============

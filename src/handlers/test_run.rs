@@ -166,7 +166,7 @@ pub async fn run_scenario_test(
             custom_headers: payload.custom_headers.unwrap_or_default(),
         };
 
-        let runner = TestRunner::with_config(config);
+        let runner = TestRunner::with_config(config)?;
         let results = runner.run_scenario(&scenario, &api, &environment).await?;
 
         let response = build_test_run_response(results);
@@ -254,7 +254,7 @@ pub async fn run_api_tests(
             custom_headers: payload.custom_headers.unwrap_or_default(),
         };
 
-        let runner = TestRunner::with_config(config);
+        let runner = TestRunner::with_config(config)?;
         let mut all_results = Vec::new();
 
         for scenario in &scenarios {
@@ -351,7 +351,7 @@ pub async fn run_collection_tests(
             custom_headers: payload.custom_headers.clone().unwrap_or_default(),
         };
 
-        let runner = TestRunner::with_config(config);
+        let runner = TestRunner::with_config(config)?;
         let mut all_results = Vec::new();
 
         for api in &apis {

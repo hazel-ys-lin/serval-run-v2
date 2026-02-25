@@ -174,6 +174,9 @@ async fn main() {
         .finish()
         .expect("Failed to build rate limiter configuration");
 
+    // Keep a reference for cleanup after shutdown
+    let state_for_cleanup = state.clone();
+
     // Build the main application router
     let app = build_router(state)
         // Add Swagger UI
@@ -195,6 +198,12 @@ async fn main() {
     .await
     .expect("Server exited with error");
 
+    // Clean up database connections
+    tracing::info!("Closing database connections...");
+    if let Err(e) = state_for_cleanup.db.close().await {
+        tracing::error!("Error closing SeaORM connection: {}", e);
+    }
+    state_for_cleanup.pg_pool.close().await;
     tracing::info!("Server shutdown complete");
 }
 

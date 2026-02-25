@@ -7,7 +7,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::error::{AppError, AppResult};
-use crate::handlers::PaginationParams;
+use crate::handlers::{JobListResponse, PaginationParams};
 use crate::middlewares::AuthUser;
 use crate::state::AppState;
 
@@ -31,14 +31,6 @@ pub struct JobStatusResponse {
     pub completed_at: Option<time::OffsetDateTime>,
     pub error_message: Option<String>,
     pub report_id: Option<Uuid>,
-}
-
-/// Job list response
-#[derive(Debug, Serialize, ToSchema)]
-pub struct JobListResponse {
-    pub data: Vec<JobStatusResponse>,
-    pub total: u64,
-    pub limit: u64,
 }
 
 /// Queue statistics
@@ -120,6 +112,7 @@ pub async fn list_jobs(
     Query(params): Query<PaginationParams>,
 ) -> AppResult<Json<JobListResponse>> {
     let limit = params.limit.unwrap_or(20).clamp(1, 100) as u64;
+    let offset = params.offset.unwrap_or(0).max(0) as u64;
 
     let jobs = state.job_queue.list_jobs_by_user(user.id, limit).await?;
 
@@ -143,7 +136,12 @@ pub async fn list_jobs(
 
     let total = data.len() as u64;
 
-    Ok(Json(JobListResponse { data, total, limit }))
+    Ok(Json(JobListResponse {
+        data,
+        total,
+        limit,
+        offset,
+    }))
 }
 
 /// Cancel a job

@@ -47,69 +47,77 @@ async fn main() {
 
     // Worker loop
     tracing::info!("Worker started, waiting for jobs...");
+    let mut shutdown_rx_loop = shutdown_rx.clone();
     loop {
-        // Check for shutdown
-        if *shutdown_rx.borrow() {
-            tracing::info!("Shutdown requested, exiting worker loop");
-            break;
+        // Wait for either a job or shutdown signal
+        let job = tokio::select! {
+            _ = shutdown_rx_loop.changed() => {
+                tracing::info!("Shutdown requested, exiting worker loop");
+                break;
+            }
+            result = state.job_queue.dequeue(5) => {
+                match result {
+                    Ok(Some(job)) => job,
+                    Ok(None) => continue,
+                    Err(e) => {
+                        tracing::error!(error = %e, "Error dequeuing job");
+                        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                        continue;
+                    }
+                }
+            }
+        };
+
+        // Process job (not interrupted by shutdown — let it finish)
+        let job_id = job.id;
+        let job_type = job.job_type.as_str().to_string();
+        tracing::info!(job_id = %job_id, job_type = %job_type, "Processing job");
+
+        // Update status to Running
+        if let Err(e) = state
+            .job_queue
+            .update_status(job_id, serval_run::queue::JobStatus::Running)
+            .await
+        {
+            tracing::error!(job_id = %job_id, error = %e, "Failed to update job status");
+            continue;
         }
 
-        // Try to dequeue a job (with 5 second timeout)
-        match state.job_queue.dequeue(5).await {
-            Ok(Some(job)) => {
-                let job_id = job.id;
-                let job_type = job.job_type.as_str().to_string();
-                tracing::info!(job_id = %job_id, job_type = %job_type, "Processing job");
-
-                // Update status to Running
-                if let Err(e) = state
-                    .job_queue
-                    .update_status(job_id, serval_run::queue::JobStatus::Running)
-                    .await
-                {
-                    tracing::error!(job_id = %job_id, error = %e, "Failed to update job status");
-                    continue;
+        // Execute the job
+        match executor.execute(job).await {
+            Ok(result) => {
+                tracing::info!(
+                    job_id = %job_id,
+                    passed = result.passed,
+                    failed = result.failed,
+                    "Job completed successfully"
+                );
+                if let Err(e) = state.job_queue.complete_job(job_id, result).await {
+                    tracing::error!(job_id = %job_id, error = %e, "Failed to mark job as complete");
                 }
-
-                // Execute the job
-                match executor.execute(job).await {
-                    Ok(result) => {
-                        tracing::info!(
-                            job_id = %job_id,
-                            passed = result.passed,
-                            failed = result.failed,
-                            "Job completed successfully"
-                        );
-                        if let Err(e) = state.job_queue.complete_job(job_id, result).await {
-                            tracing::error!(job_id = %job_id, error = %e, "Failed to mark job as complete");
-                        }
-                    }
-                    Err(e) => {
-                        let is_retryable = is_retryable_error(&e);
-                        tracing::error!(
-                            job_id = %job_id,
-                            error = %e,
-                            retryable = is_retryable,
-                            "Job failed"
-                        );
-                        if let Err(e) = state
-                            .job_queue
-                            .fail_job(job_id, e.to_string(), is_retryable)
-                            .await
-                        {
-                            tracing::error!(job_id = %job_id, error = %e, "Failed to mark job as failed");
-                        }
-                    }
-                }
-            }
-            Ok(None) => {
-                // No job available, continue loop (dequeue already waited)
             }
             Err(e) => {
-                tracing::error!(error = %e, "Error dequeuing job");
-                // Brief sleep on error to prevent tight loop
-                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                let is_retryable = is_retryable_error(&e);
+                tracing::error!(
+                    job_id = %job_id,
+                    error = %e,
+                    retryable = is_retryable,
+                    "Job failed"
+                );
+                if let Err(e) = state
+                    .job_queue
+                    .fail_job(job_id, e.to_string(), is_retryable)
+                    .await
+                {
+                    tracing::error!(job_id = %job_id, error = %e, "Failed to mark job as failed");
+                }
             }
+        }
+
+        // After job completes, check if shutdown was requested during execution
+        if *shutdown_rx.borrow() {
+            tracing::info!("Shutdown requested, exiting after completing current job");
+            break;
         }
     }
 
