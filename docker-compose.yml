@@ -30,7 +30,7 @@ services:
     environment:
       DATABASE_URL: postgres://serval:${POSTGRES_PASSWORD:-changeme}@postgres:5432/serval_run
       REDIS_URL: redis://redis:6379
-      MONGODB_URI: mongodb://mongodb:27017
+      MONGODB_URL: mongodb://mongodb:27017
       MONGODB_DATABASE: serval_run
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
     depends_on:
@@ -44,7 +44,7 @@ services:
     environment:
       DATABASE_URL: postgres://serval:${POSTGRES_PASSWORD:-changeme}@postgres:5432/serval_run
       REDIS_URL: redis://redis:6379
-      MONGODB_URI: mongodb://mongodb:27017
+      MONGODB_URL: mongodb://mongodb:27017
       MONGODB_DATABASE: serval_run
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
     depends_on:
