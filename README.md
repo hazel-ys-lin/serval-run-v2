@@ -2,6 +2,29 @@
 
 A modern rewrite of [ServalRun](https://github.com/hazel-ys-lin/serval-run) in Rust -- an automated API integration testing platform with multi-level test execution and background job processing.
 
+## v1 → v2 Comparison
+
+| Category | v1 (Node.js) | v2 (Rust) |
+|---|---|---|
+| **Language** | JavaScript (Node.js) | Rust |
+| **Framework** | Express.js v4 | Axum 0.8 + Tokio |
+| **Architecture** | Full-stack (Pug templates + REST) | REST API only |
+| **Primary DB** | MongoDB only | PostgreSQL (structured) + MongoDB (documents) |
+| **ORM / ODM** | Mongoose v6 | SeaORM 1.1 + SQLx 0.8 |
+| **Auth** | Session-based (express-session) | JWT (stateless) |
+| **Password hashing** | bcryptjs (cost 8) | Argon2id (stronger) |
+| **Job queue** | Redis list — 2 states (queued / done) | Redis — 6 states (Pending → Running → Completed / Failed / Dead / Cancelled) + retry |
+| **Worker shutdown** | `while(true)` loop, no cleanup | `tokio::select!` + graceful shutdown |
+| **Real-time updates** | Redis pub/sub + Socket.IO | — (async job polling) |
+| **Rate limiting** | None | 5 req/s (auth) / 25 req/s (general) via tower_governor |
+| **API documentation** | None | OpenAPI / Swagger UI (utoipa) |
+| **Input validation** | express-validator | Custom validators + length limits on all fields |
+| **Error handling** | `try/catch`, raw errors exposed | Typed `AppError` enum, internal errors never leak |
+| **Test coverage** | 0 (test files commented out) | 17 unit + 125+ integration tests |
+| **CI/CD** | None | GitHub Actions (fmt → clippy → test) |
+| **Docker** | None | Multi-stage Dockerfile + docker-compose |
+| **Type safety** | Runtime (JavaScript) | Compile-time (Rust) |
+
 ## Tech Stack
 
 - **Rust** + **Axum** + **Tokio** -- async web framework and runtime
