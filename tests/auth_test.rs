@@ -6,6 +6,24 @@ use uuid::Uuid;
 
 use common::{Factory, TestApp};
 
+// ============ Helper ============
+
+/// Register a user via HTTP and return the full auth body (token + refresh_token)
+async fn register_and_get_tokens(app: &TestApp) -> serde_json::Value {
+    let unique_id = Uuid::new_v4();
+    let response = app
+        .server
+        .post("/api/auth/register")
+        .json(&json!({
+            "email": format!("test-{}@example.com", unique_id),
+            "password": "password123",
+            "name": "Test User"
+        }))
+        .await;
+    response.assert_status(StatusCode::OK);
+    response.json()
+}
+
 #[tokio::test]
 async fn test_register_success() {
     let app = TestApp::new().await;
@@ -305,6 +323,160 @@ async fn test_update_me_unauthorized() {
         .json(&json!({
             "name": "Updated Name"
         }))
+        .await;
+
+    response.assert_status(StatusCode::UNAUTHORIZED);
+}
+
+// ============ Refresh Token Tests ============
+
+#[tokio::test]
+async fn test_login_returns_refresh_token() {
+    let app = TestApp::new().await;
+    let body = register_and_get_tokens(&app).await;
+    assert!(body["token"].as_str().is_some());
+    assert!(body["refresh_token"].as_str().is_some());
+}
+
+#[tokio::test]
+async fn test_refresh_success() {
+    let app = TestApp::new().await;
+    let body = register_and_get_tokens(&app).await;
+    let refresh_token = body["refresh_token"].as_str().unwrap();
+
+    let response = app
+        .server
+        .post("/api/auth/refresh")
+        .json(&json!({ "refresh_token": refresh_token }))
+        .await;
+
+    response.assert_status(StatusCode::OK);
+    let new_body: serde_json::Value = response.json();
+    assert!(new_body["token"].as_str().is_some());
+    assert!(new_body["refresh_token"].as_str().is_some());
+    // New refresh token must be different (rotation)
+    assert_ne!(new_body["refresh_token"].as_str(), Some(refresh_token));
+}
+
+#[tokio::test]
+async fn test_refresh_old_token_rejected_after_rotation() {
+    let app = TestApp::new().await;
+    let body = register_and_get_tokens(&app).await;
+    let refresh_token = body["refresh_token"].as_str().unwrap().to_string();
+
+    // First refresh — consumes the token
+    app.server
+        .post("/api/auth/refresh")
+        .json(&json!({ "refresh_token": &refresh_token }))
+        .await;
+
+    // Second attempt with the same token — must be rejected
+    let response = app
+        .server
+        .post("/api/auth/refresh")
+        .json(&json!({ "refresh_token": &refresh_token }))
+        .await;
+
+    response.assert_status(StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn test_refresh_reuse_detection_revokes_family() {
+    let app = TestApp::new().await;
+    let body = register_and_get_tokens(&app).await;
+    let original_token = body["refresh_token"].as_str().unwrap().to_string();
+
+    // Normal rotation: consume original, get new token
+    let rotated = app
+        .server
+        .post("/api/auth/refresh")
+        .json(&json!({ "refresh_token": &original_token }))
+        .await;
+    rotated.assert_status(StatusCode::OK);
+    let rotated_body: serde_json::Value = rotated.json();
+    let new_token = rotated_body["refresh_token"].as_str().unwrap().to_string();
+
+    // Replay the original (already revoked) → triggers reuse detection
+    let reuse_response = app
+        .server
+        .post("/api/auth/refresh")
+        .json(&json!({ "refresh_token": &original_token }))
+        .await;
+    reuse_response.assert_status(StatusCode::UNAUTHORIZED);
+
+    // The new token should also now be invalidated (entire family revoked)
+    let after_response = app
+        .server
+        .post("/api/auth/refresh")
+        .json(&json!({ "refresh_token": &new_token }))
+        .await;
+    after_response.assert_status(StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn test_refresh_invalid_token() {
+    let app = TestApp::new().await;
+
+    let response = app
+        .server
+        .post("/api/auth/refresh")
+        .json(&json!({ "refresh_token": "not-a-real-token" }))
+        .await;
+
+    response.assert_status(StatusCode::UNAUTHORIZED);
+}
+
+// ============ Logout Tests ============
+
+#[tokio::test]
+async fn test_logout_success() {
+    let app = TestApp::new().await;
+    let body = register_and_get_tokens(&app).await;
+    let access_token = body["token"].as_str().unwrap();
+    let refresh_token = body["refresh_token"].as_str().unwrap();
+
+    let response = app
+        .server
+        .post("/api/auth/logout")
+        .add_header("Authorization", format!("Bearer {}", access_token))
+        .json(&json!({ "refresh_token": refresh_token }))
+        .await;
+
+    response.assert_status(StatusCode::OK);
+}
+
+#[tokio::test]
+async fn test_logout_refresh_token_invalidated() {
+    let app = TestApp::new().await;
+    let body = register_and_get_tokens(&app).await;
+    let access_token = body["token"].as_str().unwrap();
+    let refresh_token = body["refresh_token"].as_str().unwrap().to_string();
+
+    // Logout
+    app.server
+        .post("/api/auth/logout")
+        .add_header("Authorization", format!("Bearer {}", access_token))
+        .json(&json!({ "refresh_token": &refresh_token }))
+        .await;
+
+    // Refresh should now fail
+    let response = app
+        .server
+        .post("/api/auth/refresh")
+        .json(&json!({ "refresh_token": &refresh_token }))
+        .await;
+
+    response.assert_status(StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn test_logout_requires_auth() {
+    let app = TestApp::new().await;
+
+    let response = app
+        .server
+        .post("/api/auth/logout")
+        .json(&json!({ "refresh_token": "some-token" }))
         .await;
 
     response.assert_status(StatusCode::UNAUTHORIZED);

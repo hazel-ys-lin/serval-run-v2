@@ -68,6 +68,11 @@ impl AuthService {
         Ok(token)
     }
 
+    /// Generate a random refresh token (UUID v4 string)
+    pub fn generate_refresh_token() -> String {
+        Uuid::new_v4().to_string()
+    }
+
     /// Verify and decode a JWT token
     pub fn verify_token(token: &str, config: &Config) -> AppResult<Claims> {
         let token_data = decode::<Claims>(

@@ -14,7 +14,8 @@ pub use api::{
     UpdateApiRequest,
 };
 pub use auth::{
-    login, me, register, update_me, AuthResponse, LoginRequest, RegisterRequest, UpdateUserRequest,
+    login, logout, me, refresh, register, update_me, AuthResponse, LoginRequest, LogoutRequest,
+    RefreshRequest, RegisterRequest, UpdateUserRequest,
 };
 pub use collection::{
     create_collection, delete_collection, get_collection, list_collections, update_collection,

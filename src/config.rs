@@ -11,6 +11,7 @@ pub struct Config {
     // JWT
     pub jwt_secret: String,
     pub jwt_expiration_hours: i64,
+    pub refresh_token_expiration_days: i64,
 
     // Server
     pub host: String,
@@ -35,9 +36,13 @@ impl Config {
             // JWT
             jwt_secret: env::var("JWT_SECRET").map_err(|_| ConfigError::Missing("JWT_SECRET"))?,
             jwt_expiration_hours: env::var("JWT_EXPIRATION_HOURS")
-                .unwrap_or_else(|_| "24".to_string())
+                .unwrap_or_else(|_| "1".to_string())
                 .parse()
                 .map_err(|_| ConfigError::Invalid("JWT_EXPIRATION_HOURS"))?,
+            refresh_token_expiration_days: env::var("REFRESH_TOKEN_EXPIRATION_DAYS")
+                .unwrap_or_else(|_| "7".to_string())
+                .parse()
+                .map_err(|_| ConfigError::Invalid("REFRESH_TOKEN_EXPIRATION_DAYS"))?,
 
             // Server
             host: env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_string()),

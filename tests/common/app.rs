@@ -22,6 +22,7 @@ pub fn test_config() -> Config {
             .unwrap_or_else(|_| "redis://localhost:6379".to_string()),
         jwt_secret: "test-jwt-secret-that-is-at-least-32-characters-long".to_string(),
         jwt_expiration_hours: 24,
+        refresh_token_expiration_days: 7,
         host: "127.0.0.1".to_string(),
         port: 0,
     }

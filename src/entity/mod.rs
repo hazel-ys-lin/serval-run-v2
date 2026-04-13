@@ -2,6 +2,7 @@ pub mod api;
 pub mod collection;
 pub mod environment;
 pub mod project;
+pub mod refresh_token;
 pub mod report;
 pub mod response;
 pub mod scenario;

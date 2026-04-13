@@ -27,9 +27,9 @@ use crate::handlers::{
     delete_environment, delete_project, delete_report, delete_scenario, get_api, get_collection,
     get_environment, get_job_status, get_project, get_queue_stats, get_report, get_report_detail,
     get_scenario, list_apis, list_collections, list_environments, list_jobs, list_projects,
-    list_reports, list_scenarios, login, me, parse_gherkin, register, requeue_job, run_api_tests,
-    run_collection_tests, run_scenario_test, update_api, update_collection, update_environment,
-    update_me, update_project, update_scenario,
+    list_reports, list_scenarios, login, logout, me, parse_gherkin, refresh, register, requeue_job,
+    run_api_tests, run_collection_tests, run_scenario_test, update_api, update_collection,
+    update_environment, update_me, update_project, update_scenario,
 };
 use crate::middlewares::auth_middleware;
 use crate::state::AppState;
@@ -112,6 +112,8 @@ pub fn build_router(state: AppState) -> Router {
         .route("/api/reports/{id}", get(get_report))
         .route("/api/reports/{id}/detail", get(get_report_detail))
         .route("/api/reports/{id}", delete(delete_report))
+        // Auth routes (require authentication)
+        .route("/api/auth/logout", post(logout))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,
@@ -123,6 +125,7 @@ pub fn build_router(state: AppState) -> Router {
         // Public auth routes
         .route("/api/auth/register", post(register))
         .route("/api/auth/login", post(login))
+        .route("/api/auth/refresh", post(refresh))
         // Protected routes
         .merge(protected_routes)
         .layer(CorsLayer::permissive())
