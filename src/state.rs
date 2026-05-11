@@ -10,7 +10,7 @@ use sqlx::sqlite::{SqliteConnectOptions, SqlitePool};
 
 use crate::config::{AppMode, Config};
 use crate::db::{detect_backend, DbBackend, SqlxPool};
-use crate::queue::{JobQueue, RedisQueue};
+use crate::queue::{InMemoryQueue, JobQueue, RedisQueue};
 
 /// Response timeout for the shared Redis connection manager.
 ///
@@ -49,27 +49,33 @@ pub struct AppState {
 }
 
 impl AppState {
-    /// Create a new AppState by connecting to all databases
+    /// Create a new AppState by connecting to the services the chosen
+    /// mode requires.
+    ///
+    /// Full mode brings up Postgres (or SQLite, by URL scheme) + MongoDB +
+    /// Redis, with a `RedisQueue` for async jobs. Lite mode brings up only
+    /// the SQL backend (typically SQLite), skips MongoDB and Redis, and
+    /// runs an `InMemoryQueue` in-process.
     pub async fn new(config: Config) -> Result<Self, AppStateError> {
-        reject_unimplemented_mode(config.mode)?;
         let (pool, db) = connect_db(&config.database_url).await?;
 
-        // Connect to MongoDB
-        let mongo_client = Some(
-            MongoClient::with_uri_str(&config.mongodb_url)
-                .await
-                .map_err(|e| AppStateError::Mongo(e.to_string()))?,
-        );
-
-        // Connect to Redis
-        let redis = Some(connect_redis(&config.redis_url).await?);
-
-        // Create job queue using Redis
-        let job_queue: Arc<dyn JobQueue> = Arc::new(RedisQueue::new(
-            redis
-                .clone()
-                .expect("redis present in Full mode where queue is constructed"),
-        ));
+        let (mongo_client, redis, job_queue) = match config.mode {
+            AppMode::Full => {
+                let mongo_client = MongoClient::with_uri_str(&config.mongodb_url)
+                    .await
+                    .map_err(|e| AppStateError::Mongo(e.to_string()))?;
+                let redis = connect_redis(&config.redis_url).await?;
+                let queue: Arc<dyn JobQueue> = Arc::new(RedisQueue::new(redis.clone()));
+                (Some(mongo_client), Some(redis), queue)
+            }
+            AppMode::Lite => {
+                tracing::info!(
+                    "Lite mode active: MongoDB and Redis not connected; using InMemoryQueue"
+                );
+                let queue: Arc<dyn JobQueue> = Arc::new(InMemoryQueue::new());
+                (None, None, queue)
+            }
+        };
 
         Ok(Self {
             db,
@@ -81,24 +87,28 @@ impl AppState {
         })
     }
 
-    /// Create AppState with a custom queue (for testing)
+    /// Create AppState with a custom queue (for testing).
+    ///
+    /// Honours `config.mode`: Lite skips Mongo/Redis the same way as
+    /// `new()`. The caller still supplies the queue (typically an
+    /// `InMemoryQueue`) so tests stay deterministic.
     #[allow(dead_code)]
     pub async fn with_queue(
         config: Config,
         job_queue: Arc<dyn JobQueue>,
     ) -> Result<Self, AppStateError> {
-        reject_unimplemented_mode(config.mode)?;
         let (pool, db) = connect_db(&config.database_url).await?;
 
-        // Connect to MongoDB
-        let mongo_client = Some(
-            MongoClient::with_uri_str(&config.mongodb_url)
-                .await
-                .map_err(|e| AppStateError::Mongo(e.to_string()))?,
-        );
-
-        // Connect to Redis
-        let redis = Some(connect_redis(&config.redis_url).await?);
+        let (mongo_client, redis) = match config.mode {
+            AppMode::Full => {
+                let mongo_client = MongoClient::with_uri_str(&config.mongodb_url)
+                    .await
+                    .map_err(|e| AppStateError::Mongo(e.to_string()))?;
+                let redis = connect_redis(&config.redis_url).await?;
+                (Some(mongo_client), Some(redis))
+            }
+            AppMode::Lite => (None, None),
+        };
 
         Ok(Self {
             db,
@@ -117,22 +127,6 @@ impl AppState {
         self.mongo_client
             .as_ref()
             .map(|c| c.database(&self.config.mongodb_database))
-    }
-}
-
-/// Gate AppState construction by mode while lite mode is still being
-/// wired up. Removed once the Lite branch wires Mongo/Redis skipping
-/// and the in-memory queue in a follow-up commit.
-fn reject_unimplemented_mode(mode: AppMode) -> Result<(), AppStateError> {
-    match mode {
-        AppMode::Full => Ok(()),
-        AppMode::Lite => Err(AppStateError::Mode(
-            "lite mode is selected via SERVAL_MODE=lite, but its wiring \
-             (skip Mongo/Redis, use InMemoryQueue) is not in this commit \
-             yet; planned for the next Phase 0 commit. \
-             For now run with SERVAL_MODE=full (or unset)."
-                .to_string(),
-        )),
     }
 }
 
@@ -217,9 +211,6 @@ pub enum AppStateError {
     #[error("Backend selection error: {0}")]
     Backend(String),
 
-    #[error("Mode error: {0}")]
-    Mode(String),
-
     #[error("PostgreSQL connection error: {0}")]
     Postgres(String),
 
@@ -248,6 +239,53 @@ mod tests {
     ///
     /// Independent of Postgres / Mongo / Redis — runs from `cargo test --lib`
     /// without any docker stack.
+    /// Build a minimal Config suitable for unit-level AppState tests.
+    /// Everything Lite mode doesn't reach (Mongo, Redis URLs) is set
+    /// to empty so this stays a single-process test with no docker.
+    fn lite_config(database_url: &str) -> Config {
+        Config {
+            mode: AppMode::Lite,
+            database_url: database_url.to_string(),
+            mongodb_url: String::new(),
+            mongodb_database: "serval_run".to_string(),
+            redis_url: String::new(),
+            jwt_secret: "test-jwt-secret-that-is-at-least-32-characters-long".to_string(),
+            jwt_expiration_hours: 24,
+            refresh_token_expiration_days: 7,
+            host: "127.0.0.1".to_string(),
+            port: 0,
+        }
+    }
+
+    /// End-to-end smoke test for lite mode: SQLite in-memory + no Mongo
+    /// + no Redis + InMemoryQueue. Catches anything that wires Mongo or
+    /// Redis unconditionally and would otherwise hang or panic when run
+    /// without docker.
+    #[tokio::test]
+    async fn lite_mode_stands_up_appstate_without_docker() {
+        let config = lite_config("sqlite::memory:");
+
+        let state = AppState::new(config)
+            .await
+            .expect("AppState::new should succeed in lite mode with sqlite::memory:");
+
+        assert!(state.mongo_client.is_none(), "lite mode should skip Mongo");
+        assert!(state.redis.is_none(), "lite mode should skip Redis");
+        assert!(
+            state.mongo_db().is_none(),
+            "mongo_db() must return None when mongo_client is None"
+        );
+
+        // Job queue should be functional even without Redis.
+        assert_eq!(
+            state.job_queue.queue_length().await.expect("queue_length"),
+            0,
+            "fresh InMemoryQueue should be empty"
+        );
+
+        assert_eq!(state.pool.backend(), DbBackend::Sqlite);
+    }
+
     #[tokio::test]
     async fn sqlite_in_memory_runs_migrations() {
         let (pool, _db) = connect_db("sqlite::memory:")
