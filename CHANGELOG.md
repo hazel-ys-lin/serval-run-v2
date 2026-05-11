@@ -10,6 +10,23 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Direction
 Pivoting toward a CLI-first, spec-anchored execution layer. See README for the v0.x roadmap.
 
+### Known limitations
+
+- **SQLite (lite mode) stores UUIDs as BLOB, not TEXT.** SeaORM's default
+  encoding for `Uuid` on SQLite is the raw 16-byte representation. Our
+  migration schema declares `id TEXT PRIMARY KEY`, but SQLite's dynamic
+  typing accepts the BLOB silently. Round-trips through the ORM are
+  correct; only ad-hoc `sqlite3` CLI queries on the `id` column return
+  binary noise. To be fixed after Phase 0 by either tagging entity UUID
+  columns with a SeaORM `column_type = "Text"` attribute, or switching
+  migrations to BLOB and documenting the choice.
+
+- **Lite mode's `InMemoryQueue` is process-local.** Running the worker
+  binary alongside the server under `SERVAL_MODE=lite` does not work
+  (each process owns its own queue). Lite mode is currently intended
+  for single-process server-only use; cross-process async execution
+  requires Full mode.
+
 ---
 
 ## [0.1.0] - 2026-05-11
