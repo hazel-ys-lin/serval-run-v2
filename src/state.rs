@@ -185,12 +185,10 @@ async fn connect_db(database_url: &str) -> Result<(SqlxPool, DatabaseConnection)
         .min_connections(5)
         .sqlx_logging(true);
 
-    let db = Database::connect(opt)
-        .await
-        .map_err(|e| match backend {
-            DbBackend::Postgres => AppStateError::Postgres(e.to_string()),
-            DbBackend::Sqlite => AppStateError::Sqlite(e.to_string()),
-        })?;
+    let db = Database::connect(opt).await.map_err(|e| match backend {
+        DbBackend::Postgres => AppStateError::Postgres(e.to_string()),
+        DbBackend::Sqlite => AppStateError::Sqlite(e.to_string()),
+    })?;
 
     Ok((pool, db))
 }

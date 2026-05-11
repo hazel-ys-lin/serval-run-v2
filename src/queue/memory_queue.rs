@@ -145,7 +145,7 @@ impl JobQueue for InMemoryQueue {
             .collect();
 
         // Sort by created_at descending
-        jobs.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        jobs.sort_by_key(|j| std::cmp::Reverse(j.created_at));
 
         Ok(jobs.into_iter().take(limit as usize).collect())
     }
