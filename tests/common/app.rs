@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum_test::TestServer;
 use serval_run::build_router;
-use serval_run::config::Config;
+use serval_run::config::{AppMode, Config};
 use serval_run::queue::InMemoryQueue;
 use serval_run::state::AppState;
 
@@ -11,6 +11,10 @@ pub fn test_config() -> Config {
     dotenvy::dotenv().ok();
 
     Config {
+        // Tests exercise the full stack (Postgres + Mongo + Redis via
+        // docker-compose); lite mode has its own coverage via the
+        // sqlite smoke test in src/state.rs.
+        mode: AppMode::Full,
         database_url: std::env::var("DATABASE_URL").unwrap_or_else(|_| {
             "postgres://postgres:postgres@localhost:5432/serval_test".to_string()
         }),

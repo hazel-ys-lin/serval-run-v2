@@ -8,7 +8,7 @@ use sea_orm::{ConnectOptions, Database, DatabaseConnection};
 use sqlx::postgres::PgPool;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePool};
 
-use crate::config::Config;
+use crate::config::{AppMode, Config};
 use crate::db::{detect_backend, DbBackend, SqlxPool};
 use crate::queue::{JobQueue, RedisQueue};
 
@@ -45,6 +45,7 @@ pub struct AppState {
 impl AppState {
     /// Create a new AppState by connecting to all databases
     pub async fn new(config: Config) -> Result<Self, AppStateError> {
+        reject_unimplemented_mode(config.mode)?;
         let (pool, db) = connect_db(&config.database_url).await?;
 
         // Connect to MongoDB
@@ -74,6 +75,7 @@ impl AppState {
         config: Config,
         job_queue: Arc<dyn JobQueue>,
     ) -> Result<Self, AppStateError> {
+        reject_unimplemented_mode(config.mode)?;
         let (pool, db) = connect_db(&config.database_url).await?;
 
         // Connect to MongoDB
@@ -97,6 +99,22 @@ impl AppState {
     /// Get MongoDB database (configurable via MONGODB_DATABASE env var)
     pub fn mongo_db(&self) -> mongodb::Database {
         self.mongo_client.database(&self.config.mongodb_database)
+    }
+}
+
+/// Gate AppState construction by mode while lite mode is still being
+/// wired up. Removed once the Lite branch wires Mongo/Redis skipping
+/// and the in-memory queue in a follow-up commit.
+fn reject_unimplemented_mode(mode: AppMode) -> Result<(), AppStateError> {
+    match mode {
+        AppMode::Full => Ok(()),
+        AppMode::Lite => Err(AppStateError::Mode(
+            "lite mode is selected via SERVAL_MODE=lite, but its wiring \
+             (skip Mongo/Redis, use InMemoryQueue) is not in this commit \
+             yet; planned for the next Phase 0 commit. \
+             For now run with SERVAL_MODE=full (or unset)."
+                .to_string(),
+        )),
     }
 }
 
@@ -180,6 +198,9 @@ async fn connect_redis(redis_url: &str) -> Result<RedisConnectionManager, AppSta
 pub enum AppStateError {
     #[error("Backend selection error: {0}")]
     Backend(String),
+
+    #[error("Mode error: {0}")]
+    Mode(String),
 
     #[error("PostgreSQL connection error: {0}")]
     Postgres(String),
