@@ -60,7 +60,11 @@ async fn main() {
                     Ok(Some(job)) => job,
                     Ok(None) => continue,
                     Err(e) => {
-                        tracing::error!(error = %e, "Error dequeuing job");
+                        // Debug formatting (?e) is required: AppError::Internal's Display
+                        // intentionally returns a generic "Internal server error" so the
+                        // inner detail doesn't leak through IntoResponse. Logs need the
+                        // detail; the public API path still hides it.
+                        tracing::error!(error = ?e, "Error dequeuing job");
                         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                         continue;
                     }
@@ -79,7 +83,7 @@ async fn main() {
             .update_status(job_id, serval_run::queue::JobStatus::Running)
             .await
         {
-            tracing::error!(job_id = %job_id, error = %e, "Failed to update job status");
+            tracing::error!(job_id = %job_id, error = ?e, "Failed to update job status");
             continue;
         }
 
@@ -93,14 +97,14 @@ async fn main() {
                     "Job completed successfully"
                 );
                 if let Err(e) = state.job_queue.complete_job(job_id, result).await {
-                    tracing::error!(job_id = %job_id, error = %e, "Failed to mark job as complete");
+                    tracing::error!(job_id = %job_id, error = ?e, "Failed to mark job as complete");
                 }
             }
             Err(e) => {
                 let is_retryable = is_retryable_error(&e);
                 tracing::error!(
                     job_id = %job_id,
-                    error = %e,
+                    error = ?e,
                     retryable = is_retryable,
                     "Job failed"
                 );
@@ -109,7 +113,7 @@ async fn main() {
                     .fail_job(job_id, e.to_string(), is_retryable)
                     .await
                 {
-                    tracing::error!(job_id = %job_id, error = %e, "Failed to mark job as failed");
+                    tracing::error!(job_id = %job_id, error = ?e, "Failed to mark job as failed");
                 }
             }
         }
