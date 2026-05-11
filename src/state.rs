@@ -7,6 +7,7 @@ use sea_orm::{ConnectOptions, Database, DatabaseConnection};
 use sqlx::postgres::PgPool;
 
 use crate::config::Config;
+use crate::db::{detect_backend, DbBackend};
 use crate::queue::{JobQueue, RedisQueue};
 
 /// Response timeout for the shared Redis connection manager.
@@ -39,6 +40,23 @@ pub struct AppState {
 impl AppState {
     /// Create a new AppState by connecting to all databases
     pub async fn new(config: Config) -> Result<Self, AppStateError> {
+        // Dispatch on DATABASE_URL scheme so a typo (or an unsupported
+        // backend like mysql://) fails fast at startup. SQLite wiring
+        // lands in the next Phase 0 commit; for now it errors clearly.
+        let backend =
+            detect_backend(&config.database_url).map_err(|e| AppStateError::Backend(e.to_string()))?;
+        match backend {
+            DbBackend::Postgres => {}
+            DbBackend::Sqlite => {
+                return Err(AppStateError::Backend(
+                    "sqlite backend is not yet implemented \
+                     (planned for the next Phase 0 commit); \
+                     use a postgres:// DATABASE_URL"
+                        .to_string(),
+                ));
+            }
+        }
+
         // Connect to PostgreSQL with SQLx (for migrations)
         let pg_pool = PgPool::connect(&config.database_url)
             .await
@@ -93,6 +111,21 @@ impl AppState {
         config: Config,
         job_queue: Arc<dyn JobQueue>,
     ) -> Result<Self, AppStateError> {
+        // Same backend dispatch as `new` — keep both entry points in lock-step.
+        let backend =
+            detect_backend(&config.database_url).map_err(|e| AppStateError::Backend(e.to_string()))?;
+        match backend {
+            DbBackend::Postgres => {}
+            DbBackend::Sqlite => {
+                return Err(AppStateError::Backend(
+                    "sqlite backend is not yet implemented \
+                     (planned for the next Phase 0 commit); \
+                     use a postgres:// DATABASE_URL"
+                        .to_string(),
+                ));
+            }
+        }
+
         // Connect to PostgreSQL with SQLx (for migrations)
         let pg_pool = PgPool::connect(&config.database_url)
             .await
@@ -146,6 +179,9 @@ impl AppState {
 
 #[derive(Debug, thiserror::Error)]
 pub enum AppStateError {
+    #[error("Backend selection error: {0}")]
+    Backend(String),
+
     #[error("PostgreSQL connection error: {0}")]
     Postgres(String),
 

@@ -2,6 +2,7 @@
 // Exports modules for use by the worker binary and tests
 
 pub mod config;
+pub mod db;
 pub mod entity;
 pub mod error;
 pub mod handlers;
