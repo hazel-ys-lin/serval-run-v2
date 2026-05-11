@@ -3,17 +3,17 @@ FROM rust:bookworm AS builder
 
 WORKDIR /app
 
-# Cache dependencies separately from source code.
-# As long as Cargo.lock is unchanged, this layer is reused on rebuild.
+# Note on caching: the classic "dummy main.rs" dependency-cache trick is
+# fragile with workspace layouts (lib + multiple bins) because cargo's
+# fingerprint cache happily reuses the empty stub lib's metadata even after
+# the real source is copied in. We accept the slower build here. When build
+# time becomes a real bottleneck, switch to cargo-chef rather than hand-
+# rolling the dummy-build trick.
 COPY Cargo.toml Cargo.lock ./
-RUN mkdir src && echo "fn main() {}" > src/main.rs \
-    && cargo build --release \
-    && rm -rf src
-
-# Copy real source and recompile only changed code
 COPY src/ src/
 COPY migrations/ migrations/
-RUN touch src/main.rs && cargo build --release
+
+RUN cargo build --release
 
 # Stage 2: Runtime
 FROM gcr.io/distroless/cc-debian12:nonroot
