@@ -10,8 +10,45 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  check:
-    name: Check, Lint & Test
+  # Static checks: fast feedback, no databases.
+  fmt-clippy:
+    name: Format & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+  # Lite-mode tests: SQLite + InMemoryQueue + no Mongo / Redis.
+  # Verifies the project can be tested with zero docker services.
+  test-lite:
+    name: Test — Lite mode (no docker)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Library tests (includes lite-mode + sqlite migration smoke tests)
+        # cargo test --lib runs unit tests inside the library crate, which
+        # is where state::tests::sqlite_in_memory_runs_migrations and
+        # state::tests::lite_mode_stands_up_appstate_without_docker live.
+        run: cargo test --lib
+        env:
+          JWT_SECRET: ci-lite-test-secret-32-chars-long-enough
+
+  # Full-mode tests: Postgres + MongoDB + Redis behind docker-style services.
+  # Drives the existing integration test suites (auth_test, scenario_test, ...).
+  test-full:
+    name: Test — Full mode (Postgres + Mongo + Redis)
     runs-on: ubuntu-latest
 
     services:
@@ -52,27 +89,14 @@ jobs:
     env:
       DATABASE_URL: postgres://serval:testpassword@localhost:5432/serval_test
       REDIS_URL: redis://localhost:6379
-      JWT_SECRET: ci-test-secret
+      JWT_SECRET: ci-full-test-secret-32-chars-long-enough
       MONGODB_URL: mongodb://localhost:27017
       MONGODB_DATABASE: serval_test
 
     steps:
       - uses: actions/checkout@v4
-
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-
       - uses: Swatinem/rust-cache@v2
 
-      - name: Check formatting
-        run: cargo fmt --all -- --check
-
-      - name: Clippy
-        run: cargo clippy --all-targets -- -D warnings
-
-      - name: Run unit tests
-        run: cargo test --lib
-
-      - name: Run integration tests
+      - name: Integration tests against the full stack
         run: cargo test --test '*'
