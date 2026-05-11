@@ -120,6 +120,27 @@ cargo run --bin worker
 
 The API server runs at `http://localhost:3000` with Swagger UI at `http://localhost:3000/swagger-ui/`.
 
+### `servalrun` CLI
+
+A `servalrun` CLI is being built up alongside the server (Phase 1 of the v0.x roadmap). Current surface is small; more subcommands land each PR.
+
+```bash
+# Build and run from the workspace
+cargo run --bin servalrun -- --help
+cargo run --bin servalrun -- --version
+
+# Health-check whichever server you point at (defaults to localhost:3000)
+cargo run --bin servalrun -- status
+cargo run --bin servalrun -- status --server http://localhost:3000 --json
+SERVAL_SERVER=http://staging.example.com cargo run --bin servalrun -- status
+
+# Install as a real binary on PATH
+cargo install --path . --bin servalrun
+servalrun status
+```
+
+Exit codes are stable across subcommands: `0` ok, `1` test/spec assertion failed, `2` system error (network / auth / server down), `3` bad input.
+
 ### Development
 
 ```bash

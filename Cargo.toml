@@ -17,6 +17,10 @@ path = "src/main.rs"
 name = "worker"
 path = "src/worker/main.rs"
 
+[[bin]]
+name = "servalrun"
+path = "src/bin/servalrun.rs"
+
 [dependencies]
 # Web framework
 axum = "0.8.8"
@@ -72,8 +76,9 @@ thiserror = "2.0.18"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter", "json"] }
 
-# HTTP client (for worker)
-reqwest = { version = "0.13.1", features = ["json"] }
+# HTTP client (for worker + servalrun CLI). `blocking` is used by the
+# CLI; async path is unaffected.
+reqwest = { version = "0.13.1", features = ["json", "blocking"] }
 
 # Time handling
 time = { version = "0.3.45", features = ["serde", "macros"] }
@@ -87,6 +92,11 @@ gherkin = "0.15"
 # Async utilities
 futures = "0.3.31"
 async-trait = "0.1"
+
+# CLI (servalrun binary)
+# `env` lets clap arguments fall back to environment variables
+# (e.g. SERVAL_SERVER for `servalrun status --server ...`).
+clap = { version = "4.5", features = ["derive", "env"] }
 
 [dev-dependencies]
 axum-test = "18.7.0"

@@ -1,6 +1,7 @@
 // Library crate for ServalRun v2
 // Exports modules for use by the worker binary and tests
 
+pub mod cli;
 pub mod config;
 pub mod db;
 pub mod entity;
