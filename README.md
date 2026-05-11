@@ -2,6 +2,33 @@
 
 A modern rewrite of [ServalRun](https://github.com/hazel-ys-lin/serval-run) in Rust -- an automated API integration testing platform with multi-level test execution and background job processing.
 
+> **Current status**: `v0.1.0` -- REST API + worker baseline. Now pivoting toward a CLI-first, spec-anchored execution layer (see [Direction](#direction) below).
+
+## Direction
+
+Evolving from a REST-only testing platform into a **source-agnostic spec execution layer** -- a CLI tool that runs, mocks, verifies, and feeds API specs to AI agents, regardless of where the spec came from (Gherkin, OpenAPI, AsyncAPI, etc.).
+
+### v0.x -- pivot phase
+
+| Tag | Milestone |
+|-----|-----------|
+| [x] `v0.1.0` | REST API + worker baseline (current) |
+| [ ] `v0.2.0` | Lite mode: SQLite + in-memory queue, no Docker required |
+| [ ] `v0.3.0` | CLI primary interface (`servalrun run / diff / mock / spec`) |
+| [ ] `v0.4.0` | Specs-as-code: `.feature` files in git, DB as cache |
+| [ ] `v0.5.0` | Mock server mode (one spec serves as mock + impl target + test) |
+| [ ] `v0.6.0` | Agent eval harness (compressed spec format + structured diff for Claude Code etc.) |
+
+### v1.0.0 -- target
+
+A stable, source-agnostic spec execution layer:
+- Reads any common spec format (Gherkin, OpenAPI 3.x, AsyncAPI)
+- Three deployment contexts share the same CLI: local dev, CI/CD, agent loops
+- Generates language-neutral test fixtures (consumed by Claude Code or similar to write language-specific tests)
+- No code generation, no visualisation, no authoring UI -- those belong to upstream tools
+
+See [CHANGELOG.md](CHANGELOG.md) for release notes.
+
 ## v1 → v2 Comparison
 
 | Category | v1 (Node.js) | v2 (Rust) |
