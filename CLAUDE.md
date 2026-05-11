@@ -55,9 +55,17 @@ cargo test --test api_test  # specific test file
 - `jsonwebtoken` uses v10 with `aws_lc_rs` feature flag for crypto backend.
 
 ## Learning Notes
-- 每次檢討、修改或修 bug 時，若有學習價值，請將心得更新到 `RUST_LEARNING_NOTES.md`。
-- `RUST_LEARNING_NOTES.md` **不要 commit 到 git**（僅供本地學習參考）。
+- 每次檢討、修改或修 bug 時，若有學習價值，請 append 到 Heptabase 既有卡片：
+  - 卡名：`Rust 學習筆記：Python/FastAPI 開發者的 Rust 之路`
+  - card_id: `fd4f349b-9aaa-48e3-acc0-66716c004505`
+  - whiteboard: `Rust` (id: `986b86a9-fb9d-4fa1-89c0-959ff1002412`)
+- Append 指令：
+  ```bash
+  heptabase note append --card-id fd4f349b-9aaa-48e3-acc0-66716c004505 \
+    --content "## <主題>\n\n<心得內容>"
+  ```
 - 筆記以 Python/FastAPI 開發者的角度撰寫，幫助理解 Rust/Axum 的對應概念。
+- 不再使用本地 `RUST_LEARNING_NOTES.md`（.gitignore 規則保留以防誤建）。
 
 ## User Preferences
 - Communicates in Traditional Chinese (繁體中文).
