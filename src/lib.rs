@@ -139,20 +139,28 @@ async fn health_check(State(state): State<AppState>) -> Json<serde_json::Value> 
         Err(_) => "error",
     };
 
-    let mongo_status = match state.mongo_db().run_command(doc! { "ping": 1 }).await {
-        Ok(_) => "ok",
-        Err(_) => "error",
+    let mongo_status = match state.mongo_db() {
+        Some(db) => match db.run_command(doc! { "ping": 1 }).await {
+            Ok(_) => "ok",
+            Err(_) => "error",
+        },
+        None => "not_configured", // Lite mode
     };
 
-    let redis_status = match redis::cmd("PING")
-        .query_async::<String>(&mut state.redis.clone())
-        .await
-    {
-        Ok(_) => "ok",
-        Err(_) => "error",
+    let redis_status = match &state.redis {
+        Some(redis) => match redis::cmd("PING")
+            .query_async::<String>(&mut redis.clone())
+            .await
+        {
+            Ok(_) => "ok",
+            Err(_) => "error",
+        },
+        None => "not_configured", // Lite mode
     };
 
-    let all_ok = pg_status == "ok" && mongo_status == "ok" && redis_status == "ok";
+    // "not_configured" is a healthy lite-mode signal, not a degraded state.
+    let healthy = |s: &str| s == "ok" || s == "not_configured";
+    let all_ok = pg_status == "ok" && healthy(mongo_status) && healthy(redis_status);
 
     Json(serde_json::json!({
         "status": if all_ok { "ok" } else { "degraded" },

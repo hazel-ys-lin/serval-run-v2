@@ -35,8 +35,14 @@ pub struct AppState {
     /// Tagged with its backend so the right migration directory is selected
     /// and so shutdown can call the variant's `close()`.
     pub pool: SqlxPool,
-    pub mongo_client: MongoClient,
-    pub redis: RedisConnectionManager,
+    /// MongoDB client, present in Full mode. Lite mode leaves this `None`
+    /// and Mongo-writing call sites skip the write (all such writes are
+    /// already non-fatal in Full mode, so the behaviour matches).
+    pub mongo_client: Option<MongoClient>,
+    /// Redis connection manager, present in Full mode. Lite mode leaves
+    /// this `None`; the job queue is then served by `InMemoryQueue` and
+    /// the health check reports redis as `"not_configured"`.
+    pub redis: Option<RedisConnectionManager>,
     pub config: Config,
     /// Job queue for async test execution
     pub job_queue: Arc<dyn JobQueue>,
@@ -49,15 +55,21 @@ impl AppState {
         let (pool, db) = connect_db(&config.database_url).await?;
 
         // Connect to MongoDB
-        let mongo_client = MongoClient::with_uri_str(&config.mongodb_url)
-            .await
-            .map_err(|e| AppStateError::Mongo(e.to_string()))?;
+        let mongo_client = Some(
+            MongoClient::with_uri_str(&config.mongodb_url)
+                .await
+                .map_err(|e| AppStateError::Mongo(e.to_string()))?,
+        );
 
         // Connect to Redis
-        let redis = connect_redis(&config.redis_url).await?;
+        let redis = Some(connect_redis(&config.redis_url).await?);
 
         // Create job queue using Redis
-        let job_queue: Arc<dyn JobQueue> = Arc::new(RedisQueue::new(redis.clone()));
+        let job_queue: Arc<dyn JobQueue> = Arc::new(RedisQueue::new(
+            redis
+                .clone()
+                .expect("redis present in Full mode where queue is constructed"),
+        ));
 
         Ok(Self {
             db,
@@ -79,12 +91,14 @@ impl AppState {
         let (pool, db) = connect_db(&config.database_url).await?;
 
         // Connect to MongoDB
-        let mongo_client = MongoClient::with_uri_str(&config.mongodb_url)
-            .await
-            .map_err(|e| AppStateError::Mongo(e.to_string()))?;
+        let mongo_client = Some(
+            MongoClient::with_uri_str(&config.mongodb_url)
+                .await
+                .map_err(|e| AppStateError::Mongo(e.to_string()))?,
+        );
 
         // Connect to Redis
-        let redis = connect_redis(&config.redis_url).await?;
+        let redis = Some(connect_redis(&config.redis_url).await?);
 
         Ok(Self {
             db,
@@ -96,9 +110,13 @@ impl AppState {
         })
     }
 
-    /// Get MongoDB database (configurable via MONGODB_DATABASE env var)
-    pub fn mongo_db(&self) -> mongodb::Database {
-        self.mongo_client.database(&self.config.mongodb_database)
+    /// Get MongoDB database when available. Returns `None` under Lite mode
+    /// (Mongo is not connected); callers that previously assumed the
+    /// presence of a database now skip the write in that case.
+    pub fn mongo_db(&self) -> Option<mongodb::Database> {
+        self.mongo_client
+            .as_ref()
+            .map(|c| c.database(&self.config.mongodb_database))
     }
 }
 

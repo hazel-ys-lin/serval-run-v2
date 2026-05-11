@@ -466,17 +466,21 @@ pub async fn create_from_gherkin(
 
     let parsed = GherkinService::parse(&payload.gherkin_code)?;
 
-    // Save raw Gherkin document to MongoDB
-    let parsed_json = serde_json::to_value(&parsed).unwrap_or_default();
-    if let Err(e) = MongoRepository::save_gherkin_document(
-        &state.mongo_db(),
-        api_id,
-        &payload.gherkin_code,
-        &parsed_json,
-    )
-    .await
-    {
-        tracing::warn!(error = %e, "Failed to save Gherkin document to MongoDB (non-fatal)");
+    // Save raw Gherkin document to MongoDB when configured. In Lite mode
+    // (no Mongo) this skips silently — these writes are advisory either
+    // way, so the behaviour matches the existing non-fatal pattern.
+    if let Some(mongo_db) = state.mongo_db() {
+        let parsed_json = serde_json::to_value(&parsed).unwrap_or_default();
+        if let Err(e) = MongoRepository::save_gherkin_document(
+            &mongo_db,
+            api_id,
+            &payload.gherkin_code,
+            &parsed_json,
+        )
+        .await
+        {
+            tracing::warn!(error = %e, "Failed to save Gherkin document to MongoDB (non-fatal)");
+        }
     }
 
     let mut created_scenarios = Vec::new();

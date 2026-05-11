@@ -124,10 +124,15 @@ impl ResultHandler {
             })
             .collect();
 
-        if let Err(e) =
-            MongoRepository::save_execution_logs(&state.mongo_db(), report_id, logs).await
-        {
-            tracing::warn!(error = %e, "Failed to save execution logs to MongoDB (non-fatal)");
+        // Persist execution logs to MongoDB when configured. In Lite mode
+        // there is no Mongo; the log write is skipped (it was already
+        // non-fatal in Full mode).
+        if let Some(mongo_db) = state.mongo_db() {
+            if let Err(e) =
+                MongoRepository::save_execution_logs(&mongo_db, report_id, logs).await
+            {
+                tracing::warn!(error = %e, "Failed to save execution logs to MongoDB (non-fatal)");
+            }
         }
 
         Ok(())
