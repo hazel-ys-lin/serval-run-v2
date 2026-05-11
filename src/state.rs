@@ -45,7 +45,7 @@ impl AppState {
             .map_err(|e| AppStateError::Postgres(e.to_string()))?;
 
         // Run migrations
-        sqlx::migrate!("./migrations")
+        sqlx::migrate!("./migrations/postgres")
             .run(&pg_pool)
             .await
             .map_err(|e| AppStateError::Migration(e.to_string()))?;
@@ -99,7 +99,7 @@ impl AppState {
             .map_err(|e| AppStateError::Postgres(e.to_string()))?;
 
         // Run migrations
-        sqlx::migrate!("./migrations")
+        sqlx::migrate!("./migrations/postgres")
             .run(&pg_pool)
             .await
             .map_err(|e| AppStateError::Migration(e.to_string()))?;
