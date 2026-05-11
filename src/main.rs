@@ -203,7 +203,7 @@ async fn main() {
     if let Err(e) = state_for_cleanup.db.close().await {
         tracing::error!("Error closing SeaORM connection: {}", e);
     }
-    state_for_cleanup.pg_pool.close().await;
+    state_for_cleanup.pool.close().await;
     tracing::info!("Server shutdown complete");
 }
 

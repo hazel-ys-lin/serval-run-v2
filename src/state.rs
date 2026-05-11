@@ -7,7 +7,7 @@ use sea_orm::{ConnectOptions, Database, DatabaseConnection};
 use sqlx::postgres::PgPool;
 
 use crate::config::Config;
-use crate::db::{detect_backend, DbBackend};
+use crate::db::{detect_backend, DbBackend, SqlxPool};
 use crate::queue::{JobQueue, RedisQueue};
 
 /// Response timeout for the shared Redis connection manager.
@@ -26,10 +26,13 @@ const REDIS_RESPONSE_TIMEOUT: Duration = Duration::from_secs(30);
 /// Application state shared across all handlers
 #[derive(Clone)]
 pub struct AppState {
-    /// SeaORM database connection (primary for queries)
+    /// SeaORM database connection (primary for queries; routes by URL scheme).
     pub db: DatabaseConnection,
-    /// SQLx pool for migrations only
-    pub pg_pool: PgPool,
+    /// SQLx pool for migration setup and graceful shutdown.
+    ///
+    /// Tagged with its backend so the right migration directory is selected
+    /// and so shutdown can call the variant's `close()`.
+    pub pool: SqlxPool,
     pub mongo_client: MongoClient,
     pub redis: RedisConnectionManager,
     pub config: Config,
@@ -97,7 +100,7 @@ impl AppState {
 
         Ok(Self {
             db,
-            pg_pool,
+            pool: SqlxPool::Postgres(pg_pool),
             mongo_client,
             redis,
             config,
@@ -163,7 +166,7 @@ impl AppState {
 
         Ok(Self {
             db,
-            pg_pool,
+            pool: SqlxPool::Postgres(pg_pool),
             mongo_client,
             redis,
             config,

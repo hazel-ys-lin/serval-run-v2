@@ -18,6 +18,9 @@
 
 use std::fmt;
 
+use sqlx::postgres::PgPool;
+use sqlx::sqlite::SqlitePool;
+
 /// Which SQL backend ServalRun should talk to.
 ///
 /// New variants here will need matching arms in [`crate::state::AppState`].
@@ -74,6 +77,43 @@ pub fn detect_backend(url: &str) -> Result<DbBackend, DbBackendError> {
         other => Err(DbBackendError::UnsupportedScheme {
             scheme: other.to_string(),
         }),
+    }
+}
+
+/// A backend-tagged SQLx pool.
+///
+/// Sea-ORM owns the runtime query path (its own URL-driven driver
+/// selection handles both backends transparently). This wrapper exists
+/// only for the workflows where the *specific* backend matters:
+///
+/// - running migrations from the per-backend `migrations/{postgres,sqlite}`
+///   directory at startup
+/// - graceful shutdown (closing the pool cleanly)
+///
+/// Keeping the SQLx pool on `AppState` mirrors the v0.1.0 shape and
+/// makes the diff small; the long-term direction is to move migration
+/// concerns out of `AppState` entirely and drop this type.
+#[derive(Clone)]
+pub enum SqlxPool {
+    Postgres(PgPool),
+    Sqlite(SqlitePool),
+}
+
+impl SqlxPool {
+    /// Close the pool gracefully (called from server shutdown).
+    pub async fn close(&self) {
+        match self {
+            SqlxPool::Postgres(p) => p.close().await,
+            SqlxPool::Sqlite(p) => p.close().await,
+        }
+    }
+
+    /// Which backend this pool talks to.
+    pub fn backend(&self) -> DbBackend {
+        match self {
+            SqlxPool::Postgres(_) => DbBackend::Postgres,
+            SqlxPool::Sqlite(_) => DbBackend::Sqlite,
+        }
     }
 }
 
