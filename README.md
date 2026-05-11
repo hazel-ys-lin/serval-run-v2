@@ -78,18 +78,40 @@ See [CHANGELOG.md](CHANGELOG.md) for release notes.
 ### Prerequisites
 
 - Rust 1.75+
-- Docker & Docker Compose
+- Docker & Docker Compose -- *only required for full mode*
 
-### Quick Start
+ServalRun runs in two modes. Pick one based on what you're doing.
+
+### Quick Start -- Lite mode (no docker, recommended for local dev)
+
+Single-process server backed by SQLite and an in-memory job queue. Boots in seconds, leaves no containers behind.
 
 ```bash
-# Start databases
+SERVAL_MODE=lite \
+DATABASE_URL=sqlite:./serval.db \
+JWT_SECRET=$(openssl rand -hex 32) \
+cargo run --bin server
+```
+
+The API server runs at `http://localhost:3000`. The `/health` endpoint reports `mongodb` and `redis` as `"not_configured"` -- this is expected.
+
+Caveats:
+- MongoDB writes (Gherkin docs, execution logs) are skipped silently. These are already non-fatal in full mode, so behaviour matches.
+- The background `worker` binary is **not** supported in lite mode -- the in-memory queue is process-local, so sync test execution only.
+- See [CHANGELOG.md](CHANGELOG.md) for other lite-mode caveats.
+
+### Quick Start -- Full mode (Postgres + MongoDB + Redis)
+
+Original v0.1.0 shape; required for shared / team deployments, async test execution, and Mongo-backed log storage.
+
+```bash
+# Start the database stack
 docker-compose up -d
 
 # Copy environment variables
 cp .env.example .env
 
-# Run database migrations and start API server
+# Run database migrations and start API server (default mode is full)
 cargo run --bin server
 
 # In another terminal, start the background worker
@@ -101,8 +123,12 @@ The API server runs at `http://localhost:3000` with Swagger UI at `http://localh
 ### Development
 
 ```bash
-# Run tests (requires running databases)
-cargo test
+# Library tests only (lite-mode + SQLite smoke tests; no docker required)
+cargo test --lib
+
+# Full integration test suite (needs the docker stack up)
+docker-compose up -d
+cargo test --test '*'
 
 # Run with debug logging
 RUST_LOG=serval_run=debug cargo run --bin server
@@ -115,15 +141,16 @@ cargo fmt && cargo clippy
 
 See [.env.example](.env.example) for all configuration options:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DATABASE_URL` | -- | PostgreSQL connection string |
-| `MONGODB_URL` | -- | MongoDB connection string |
-| `REDIS_URL` | -- | Redis connection string |
-| `JWT_SECRET` | -- | Secret key for JWT signing |
-| `JWT_EXPIRATION_HOURS` | `24` | Token expiration time |
-| `HOST` | `0.0.0.0` | Server bind address |
-| `PORT` | `3000` | Server port |
+| Variable | Default | Required in | Description |
+|----------|---------|-------------|-------------|
+| `SERVAL_MODE` | `full` | -- | `full` or `lite`. Unknown values fall back to `full` |
+| `DATABASE_URL` | -- | both modes | `postgres://...` for full mode, `sqlite:...` for lite mode |
+| `MONGODB_URL` | -- | full only | MongoDB connection string (ignored in lite) |
+| `REDIS_URL` | -- | full only | Redis connection string (ignored in lite) |
+| `JWT_SECRET` | -- | both modes | Secret key for JWT signing |
+| `JWT_EXPIRATION_HOURS` | `24` | both modes | Token expiration time |
+| `HOST` | `0.0.0.0` | both modes | Server bind address |
+| `PORT` | `3000` | both modes | Server port |
 
 ## API Overview
 
